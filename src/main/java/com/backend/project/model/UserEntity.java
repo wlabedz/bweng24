@@ -19,7 +19,13 @@ public class UserEntity {
     @Id
     private UUID id;
 
+    private String name;
+
+    private String surname;
+
     private String username;
+
+    private String mail;
 
     private String password;
 
@@ -28,8 +34,11 @@ public class UserEntity {
         inverseJoinColumns = @JoinColumn(name="role_id", referencedColumnName = "id"))
     private List<Roles> roles = new ArrayList<>();
 
-    public UserEntity(String username, String password){
+    public UserEntity(String name, String surname, String mail, String username, String password){
         this.id = UUID.randomUUID();
+        this.name = name;
+        this.surname = surname;
+        this.mail = mail;
         this.username = username;
         this.password = password;
     }
