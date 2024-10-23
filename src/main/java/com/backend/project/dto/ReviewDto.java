@@ -5,5 +5,4 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-public record OfficeDto(@NotNull DistrictDto district, @NotBlank String phoneNumber,
-                        @NotBlank String address, @NotBlank String photo, @NotBlank String description){}
+public record ReviewDto(@NotBlank String opinion){}

@@ -41,6 +41,9 @@ public class SecurityConfig {
                         sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/offices").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/offices").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/reviews").authenticated()
                         .anyRequest().permitAll());
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();

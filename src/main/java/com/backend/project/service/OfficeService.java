@@ -31,14 +31,12 @@ public class OfficeService {
     }
 
     public Office addOffice(OfficeDto officeDto){
-
-        Optional<District> existingDistrict = districtRepository.findById(officeDto.districtNumber());
-
+        Optional<District> existingDistrict = districtRepository.findById(officeDto.district().id());
         District district;
         if (existingDistrict.isPresent()) {
             district = existingDistrict.get();
         } else {
-            district = new District(officeDto.districtNumber(), "");
+            district = new District(officeDto.district().id(), officeDto.district().name());
             districtRepository.save(district);
         }
 
@@ -64,4 +62,15 @@ public class OfficeService {
 
         return filteredOffices.isEmpty() ? Optional.empty() : Optional.of(filteredOffices);
     }
+
+    public void removeOffice(String id){
+        Office officeToDelete =
+                officeRepository.findAll()
+                .stream()
+                .filter(office -> office.getId().toString().equals(id))
+                .findFirst().
+                orElseThrow(() -> new OfficeNotFoundException(id));
+
+        officeRepository.deleteById(officeToDelete.getId());
+   }
 }

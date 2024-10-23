@@ -61,5 +61,9 @@ public class OfficeController {
         }
     }
 
+    @DeleteMapping("/offices/{id}")
+    public void deleteOfficeById(@PathVariable String id){
+        officeService.removeOffice(id);
+    }
 
 }

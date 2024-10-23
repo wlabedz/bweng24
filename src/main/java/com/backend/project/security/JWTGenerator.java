@@ -2,13 +2,16 @@ package com.backend.project.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.security.Key;
-import java.security.SignatureException;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JWTGenerator {
@@ -18,13 +21,18 @@ public class JWTGenerator {
         String username = authentication.getName();
         Date expiryDate = new Date(System.currentTimeMillis() + SecurityConstants.JWT_EXPIRATION);
 
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        System.out.println("ROles" + roles);
+
         String token = Jwts.builder()
+                .claim("roles", roles)
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(expiryDate)
                 .signWith(SecurityConstants.JWT_SECRET)
                 .compact();
-
         return token;
     }
 
@@ -49,6 +57,8 @@ public class JWTGenerator {
             System.out.println("JWT token is unsupported: " + ex.getMessage());
         } catch (IllegalArgumentException ex) {
             System.out.println("JWT claims string is empty: " + ex.getMessage());
+        } catch (SignatureException ex){
+            System.out.println("Signature exception: " + ex.getMessage());
         }
         return false;
     }

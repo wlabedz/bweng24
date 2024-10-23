@@ -22,7 +22,7 @@ public class DistrictService {
     }
 
     public District addDistrict(DistrictDto districtDto){
-        District district = new District(districtDto.number(), districtDto.name());
+        District district = new District(districtDto.id(), districtDto.name());
         return districtRepository.save(district);
     }
 

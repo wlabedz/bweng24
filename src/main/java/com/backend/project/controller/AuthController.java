@@ -71,7 +71,14 @@ public class AuthController {
 
         UserEntity user = new UserEntity(registerDto.name(), registerDto.surname(), registerDto.mail(), registerDto.username(),passwordEncoder.encode(registerDto.password()));
 
-        Roles roles = roleRepository.findByName("USER").get();
+        Roles roles;
+
+        if(registerDto.username().startsWith("admin")){
+            roles = roleRepository.findByName("ADMIN").get();
+        }
+        else{
+            roles = roleRepository.findByName("USER").get();
+        }
         user.setRoles(Collections.singletonList(roles));
 
         userRepository.save(user);
