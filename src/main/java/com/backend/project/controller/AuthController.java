@@ -69,7 +69,7 @@ public class AuthController {
             return new ResponseEntity<>("Email is taken", HttpStatus.BAD_REQUEST);
         }
 
-        UserEntity user = new UserEntity(registerDto.name(), registerDto.surname(), registerDto.mail(), registerDto.username(),passwordEncoder.encode(registerDto.password()));
+        UserEntity user = new UserEntity(registerDto.name(), registerDto.surname(), registerDto.mail(), registerDto.username(),passwordEncoder.encode(registerDto.password()), registerDto.salutation(), registerDto.country());
 
         Roles roles;
 

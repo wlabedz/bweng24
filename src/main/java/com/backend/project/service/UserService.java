@@ -21,4 +21,16 @@ public class UserService {
                 .filter(userEntity -> userEntity.getUsername().equals(username))
                 .findFirst().orElseThrow(() -> new UserNotFoundException(username));
     }
+
+    public UserEntity updateUser(UserEntity user) {
+        UserEntity existingUser = userRepository.findByUsername(user.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        existingUser.setName(user.getName());
+        existingUser.setSurname(user.getSurname());
+        existingUser.setMail(user.getMail());
+        existingUser.setProfileImagePath(user.getProfileImagePath());
+
+        return userRepository.save(existingUser);
+    }
 }
