@@ -24,7 +24,6 @@ public class JWTGenerator {
         List<String> roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
-        System.out.println("ROles" + roles);
 
         String token = Jwts.builder()
                 .claim("roles", roles)
