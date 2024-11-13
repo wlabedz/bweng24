@@ -19,8 +19,6 @@ public class Office {
     @Id
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "district_id")
     private District district;
 
     private String phoneNumber;
