@@ -50,19 +50,7 @@ public class UserController {
             UserEntity user = userService.getUserByUsername(username);
 
             if (user != null) {
-                String photo;
-                try {
-                    Path filePath = Paths.get(user.getProfileImagePath());
-                    byte[] imageBytes = Files.readAllBytes(filePath);
-                    String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-                    photo = base64Image;
-                } catch (Exception e) {
-                    photo = null;
-                }
-
-                UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), photo);;
-
-
+                UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), user.getProfileImagePath());;
                 return new ResponseEntity<>(userDTO, HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -107,11 +95,18 @@ public class UserController {
                 Files.createDirectories(filePath.getParent());
                 Files.write(filePath, photo.getBytes());
 
-                user.setProfileImagePath(filePath.toString());
-                userService.updateUser(user);
+                String base64Image = null;
+                try {
+                    byte[] imageBytes = Files.readAllBytes(filePath);
+                    base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
-                String fileUrl = "/uploads/" + fileName;
-                return new ResponseEntity<>(fileUrl, HttpStatus.OK);
+                } catch (Exception e) {
+                    base64Image = null;
+                }
+
+                user.setProfileImagePath(base64Image);
+                userService.updateUser(user);
+                return new ResponseEntity<>(base64Image, HttpStatus.OK);
 
             } catch (IOException e) {
                 e.printStackTrace();

@@ -95,7 +95,7 @@ public class FoundItemController {
                             itemDto.foundDate(),
                             itemDto.foundPlace()
                     );
-
+                    System.out.println(filePath.toString());
                     String id = itemService.addItem(updatedItemDto, user).getId().toString();
 
                     String fileUrl = "/items/" + fileName;

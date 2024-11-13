@@ -8,7 +8,12 @@ import com.backend.project.repository.DistrictRepository;
 import com.backend.project.repository.OfficeRepository;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.server.UID;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,7 +32,12 @@ public class OfficeService {
     }
 
     public Optional<List<Office>> getAllOffices() {
-        return officeRepository.findAll().isEmpty() ? Optional.empty() : Optional.of(officeRepository.findAll());
+        List<Office> offices = officeRepository.findAll().stream().peek(office -> office.setPhoto(getFullPhotoPath(office.getPhoto()))).collect(Collectors.toList());
+        if(offices.isEmpty()){
+            return Optional.empty();
+        }else{
+            return Optional.of(offices);
+        }
     }
 
     public Office addOffice(OfficeDto officeDto){
@@ -47,11 +57,15 @@ public class OfficeService {
     }
 
     public Office getOfficeById(String id){
-        return officeRepository.findAll()
+        Office of =  officeRepository.findAll()
                 .stream()
                 .filter(office -> office.getId().toString().equals(id))
                .findFirst().
                 orElseThrow(() -> new OfficeNotFoundException(id));
+
+        of.setPhoto(getFullPhotoPath(of.getPhoto()));
+
+        return of;
     }
 
     public Optional<List<Office>> getOfficesByDistrictNumber(int districtNumber) {
@@ -73,4 +87,15 @@ public class OfficeService {
 
         officeRepository.deleteById(officeToDelete.getId());
    }
+
+    private String getFullPhotoPath(String photoFilename) {
+        Path path = Paths.get(photoFilename);
+        try {
+            byte[] photoBytes = Files.readAllBytes(path);
+            return "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photoBytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }
