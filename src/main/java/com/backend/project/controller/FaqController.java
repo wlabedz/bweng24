@@ -1,15 +1,15 @@
 package com.backend.project.controller;
 
 
+import com.backend.project.dto.FaqDto;
 import com.backend.project.model.Faq;
 import com.backend.project.service.FaqService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -28,5 +28,14 @@ public class FaqController {
     public List<Faq> getAllFaqs(){
         return faqService.getAllFaqs();
     }
+
+    @PostMapping
+    public ResponseEntity<Faq> addFaq(@RequestBody @Valid FaqDto faqDto) {
+        String id = faqService.addFaq(faqDto).getId().toString();
+        return ResponseEntity
+                .created(URI.create("/faqs/" + id))
+                .build();
+    }
+
 
 }

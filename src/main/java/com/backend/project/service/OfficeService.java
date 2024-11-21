@@ -1,43 +1,39 @@
 package com.backend.project.service;
 
+import com.backend.project.dto.DistrictDto;
 import com.backend.project.dto.OfficeDto;
+import com.backend.project.dto.OfficeRetDto;
 import com.backend.project.exceptions.OfficeNotFoundException;
 import com.backend.project.model.District;
 import com.backend.project.model.Office;
+import com.backend.project.model.OfficePhoto;
 import com.backend.project.repository.DistrictRepository;
 import com.backend.project.repository.OfficeRepository;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.rmi.server.UID;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class OfficeService {
 
     private OfficeRepository officeRepository;
     private DistrictRepository districtRepository;
+    private OfficePhotoService officePhotoService;
 
     public OfficeService(OfficeRepository officeRepository,
-                       DistrictRepository districtRepository) {
+                       DistrictRepository districtRepository,
+                        OfficePhotoService officePhotoService) {
         this.officeRepository = officeRepository;
         this.districtRepository = districtRepository;
+        this.officePhotoService = officePhotoService;
     }
 
-    public Optional<List<Office>> getAllOffices() {
-        List<Office> offices = officeRepository.findAll().stream().peek(office -> office.setPhoto(getFullPhotoPath(office.getPhoto()))).collect(Collectors.toList());
-        if(offices.isEmpty()){
-            return Optional.empty();
-        }else{
-            return Optional.of(offices);
-        }
+    public Optional<List<OfficeRetDto>> getAllOffices() {
+        List<OfficeRetDto> off =  officeRepository.findAll().stream().map(this::mapToDto).toList();
+
+        return off.isEmpty() ? Optional.empty() : Optional.of(off);
     }
 
     public Office addOffice(OfficeDto officeDto){
@@ -50,29 +46,26 @@ public class OfficeService {
             districtRepository.save(district);
         }
 
+        OfficePhoto officePhoto = officePhotoService.addPhoto(officeDto.photo());
+
         Office office = new Office(district, officeDto.phoneNumber(), officeDto.address(),
-                officeDto.photo(), officeDto.description());
+                officePhoto.getId(), officeDto.description());
 
         return officeRepository.save(office);
     }
 
-    public Office getOfficeById(String id){
-        Office of =  officeRepository.findAll()
+    public OfficeRetDto getOfficeById(String id){
+        return officeRepository.findAll()
                 .stream()
                 .filter(office -> office.getId().toString().equals(id))
-               .findFirst().
-                orElseThrow(() -> new OfficeNotFoundException(id));
-
-        of.setPhoto(getFullPhotoPath(of.getPhoto()));
-
-        return of;
+                .findFirst().map(this::mapToDto).orElse(null);
     }
 
-    public Optional<List<Office>> getOfficesByDistrictNumber(int districtNumber) {
-        List<Office> filteredOffices = officeRepository.findAll()
+    public Optional<List<OfficeRetDto>> getOfficesByDistrictNumber(int districtNumber) {
+        List<OfficeRetDto> filteredOffices = officeRepository.findAll()
                 .stream()
                 .filter(office -> office.getDistrict().getId().equals(districtNumber))
-                .collect(Collectors.toList());
+                .map(this::mapToDto).toList();
 
         return filteredOffices.isEmpty() ? Optional.empty() : Optional.of(filteredOffices);
     }
@@ -84,18 +77,56 @@ public class OfficeService {
                 .filter(office -> office.getId().toString().equals(id))
                 .findFirst().
                 orElseThrow(() -> new OfficeNotFoundException(id));
-
+        if(officeToDelete.getPhotoId() != null){
+            officePhotoService.deletePhotoById(officeToDelete.getPhotoId());
+        }
         officeRepository.deleteById(officeToDelete.getId());
    }
 
-    private String getFullPhotoPath(String photoFilename) {
-        Path path = Paths.get(photoFilename);
-        try {
-            byte[] photoBytes = Files.readAllBytes(path);
-            return "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photoBytes);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+   public Office updateOffice(OfficeDto officeDto, String id) {
+       UUID ud;
+       if (officeDto.photo() != null) {
+           ud = officePhotoService.addPhoto(officeDto.photo()).getId();
+       } else {
+           ud = null;
+       }
+       District d = districtRepository.findById(officeDto.district().id()).orElse(null);
+
+       return officeRepository.findAll()
+               .stream().filter(office -> office.getId().toString().equals(id))
+               .map(existingOffice -> {
+                   if(existingOffice.getPhotoId() != null){
+                       officePhotoService.deletePhotoById(existingOffice.getPhotoId());
+                   }
+                   existingOffice.setPhotoId(ud);
+                   existingOffice.setDescription(officeDto.description());
+                   existingOffice.setAddress(officeDto.address());
+                   existingOffice.setDistrict(d);
+                   existingOffice.setPhoneNumber(officeDto.phoneNumber());
+                   return officeRepository.save(existingOffice);
+               }).findFirst().orElse(null);
+   }
+
+
+    private OfficeRetDto mapToDto(Office office) {
+        OfficePhoto off = null;
+        if(office.getPhotoId() != null){
+            off = officePhotoService.getPhotoById(office.getPhotoId()).orElse(null);
         }
+
+        String picture = null;
+
+        if(off != null){
+            picture = off.getContent();
+        }
+
+        return new OfficeRetDto(
+                office.getId(),
+                new DistrictDto(office.getDistrict().getId(),office.getDistrict().getName()),
+                office.getPhoneNumber(),
+                office.getAddress(),
+                picture,
+                office.getDescription()
+        );
     }
 }

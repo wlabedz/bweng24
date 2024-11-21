@@ -35,6 +35,8 @@ public class UserPhotoService {
     }
 
     public void deletePhotoById(UUID id){
-        userPhotoRepository.deleteById(id);
+        if(id != null){
+            userPhotoRepository.deleteById(id);
+        }
     }
 }

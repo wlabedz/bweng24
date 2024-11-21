@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/found_items/submit").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/found_items").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/found_items/description").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "api/offices/*").hasAuthority("ADMIN")
                         .anyRequest().permitAll());
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
