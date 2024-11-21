@@ -3,8 +3,10 @@ package com.backend.project.controller;
 
 import com.backend.project.dto.UserDto;
 import com.backend.project.model.UserEntity;
+import com.backend.project.model.UserPhoto;
 import com.backend.project.security.CustomUserDetailsService;
 import com.backend.project.security.JWTGenerator;
+import com.backend.project.service.UserPhotoService;
 import com.backend.project.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.coyote.Response;
@@ -20,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
@@ -27,10 +30,12 @@ public class UserController {
 
     private final UserService userService;
     private final JWTGenerator jwtGenerator;
+    private final UserPhotoService userPhotoService;
 
-    public UserController(UserService userService, JWTGenerator jwtGenerator) {
+    public UserController(UserService userService, JWTGenerator jwtGenerator, UserPhotoService userPhotoService) {
         this.userService = userService;
         this.jwtGenerator = jwtGenerator;
+        this.userPhotoService = userPhotoService;
     }
 
     @GetMapping("/user")
@@ -48,9 +53,20 @@ public class UserController {
             String username = jwtGenerator.getUsernameFromJWT(token);
 
             UserEntity user = userService.getUserByUsername(username);
+            UserPhoto usph = null;
+
+            if(user.getPhoto() != null){
+                usph = userPhotoService.getPhotoById(user.getPhoto()).orElse(null);
+            }
+            String content;
+            if( usph != null){
+                content = usph.getContent();
+            }else{
+                content = null;
+            }
 
             if (user != null) {
-                UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), user.getProfileImagePath());;
+                UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content);;
                 return new ResponseEntity<>(userDTO, HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -68,7 +84,6 @@ public class UserController {
             token = token.substring(7);
         }
 
-
         if (token != null && jwtGenerator.validateToken(token)) {
             String username = jwtGenerator.getUsernameFromJWT(token);
 
@@ -79,39 +94,28 @@ public class UserController {
                     return new ResponseEntity<>("No file uploaded", HttpStatus.BAD_REQUEST);
                 }
             }
+            String base64Image;
             try {
-                Path dirPath = Paths.get("src/main/resources/uploads");
-                File[] filesToDelete = dirPath.toFile().listFiles((dir, name) -> name.startsWith(username));
-                if (filesToDelete != null) {
-                    for (File file : filesToDelete) {
-                        file.delete();
-                    }
-                }
-
-
-                String fileName = username + "_" + System.currentTimeMillis() + "_" + photo.getOriginalFilename();
-                Path filePath = Paths.get("src/main/resources/uploads", fileName);
-
-                Files.createDirectories(filePath.getParent());
-                Files.write(filePath, photo.getBytes());
-
-                String base64Image = null;
-                try {
-                    byte[] imageBytes = Files.readAllBytes(filePath);
-                    base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
-                } catch (Exception e) {
-                    base64Image = null;
-                }
-
-                user.setProfileImagePath(base64Image);
-                userService.updateUser(user);
-                return new ResponseEntity<>(base64Image, HttpStatus.OK);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                return new ResponseEntity<>("Error uploading file", HttpStatus.INTERNAL_SERVER_ERROR);
+                byte[] imageBytes = photo.getBytes();
+                base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            } catch (Exception e) {
+                base64Image = null;
             }
+            if(base64Image != null){
+                UserPhoto usph = userPhotoService.addPhoto(base64Image);
+                assert user != null;
+
+                UUID toDelete = user.getPhoto();
+                userPhotoService.deletePhotoById(toDelete);
+                user.setPhoto(usph.getId());
+            }
+            else{
+                user.setPhoto(null);
+            }
+
+
+            userService.updateUser(user);
+            return new ResponseEntity<>(base64Image, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }

@@ -29,8 +29,9 @@ public class UserService {
         existingUser.setName(user.getName());
         existingUser.setSurname(user.getSurname());
         existingUser.setMail(user.getMail());
-        existingUser.setProfileImagePath(user.getProfileImagePath());
+        existingUser.setPhoto(user.getPhoto());
 
         return userRepository.save(existingUser);
     }
+
 }
