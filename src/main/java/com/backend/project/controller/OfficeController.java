@@ -90,18 +90,7 @@ public class OfficeController {
     }
 
     @DeleteMapping("/offices/{id}")
-    public void deleteOfficeById(@PathVariable String id, HttpServletRequest request) {
-        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
-
-        if (token != null && jwtGenerator.validateToken(token)) {
-            String username = jwtGenerator.getUsernameFromJWT(token);
-            UserEntity user = userService.getUserByUsername(username);
-
-        }
+    public void deleteOfficeById(@PathVariable String id) {
         officeService.removeOffice(id);
     }
 

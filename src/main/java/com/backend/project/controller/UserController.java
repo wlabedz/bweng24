@@ -1,7 +1,11 @@
 package com.backend.project.controller;
 
 
+import com.backend.project.dto.DistrictDto;
+import com.backend.project.dto.OfficeRetDto;
 import com.backend.project.dto.UserDto;
+import com.backend.project.model.Office;
+import com.backend.project.model.OfficePhoto;
 import com.backend.project.model.UserEntity;
 import com.backend.project.model.UserPhoto;
 import com.backend.project.security.CustomUserDetailsService;
@@ -22,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -119,6 +124,25 @@ public class UserController {
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        List<UserDto> users = userService.getAll();
+
+        return ResponseEntity.ok(users);
+    }
+
+
+    @DeleteMapping("/users")
+    public void deleteUserById(@RequestBody String username){
+        userService.removeByUsername(username);
+    }
+
+    @PutMapping("/users")
+    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto updatedUserDto) {
+        UserDto userEntity = userService.patchUserPhoto(updatedUserDto);
+        return ResponseEntity.ok(userEntity);
     }
 
 }
