@@ -3,55 +3,37 @@ package com.backend.project.model;
 
 import jakarta.persistence.Id;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
+
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 
-
+//  MongoDB document.
 @Document(collection = "Faq")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Faq {
 
+    @Getter
     @Id
     private String id;
+    @Getter
+    @Setter
     private String Question;
+    @Setter
+    @Getter
     private String Answer;
 
-    // Getters and Setters
+    private boolean Approved = false; // Default value is false
 
-    public Faq(String question, String answer) {
-        this.Question = question;
-        this.Answer = answer;
+    // Constructor
+    public Faq(String Question, String Answer, Boolean Approved) {
+        this.Question = Question;
+        this.Answer = Answer;
+        this.Approved = Approved;
     }
-
-//    public String getId() {
-//        return id;
-//    }
-//
-//    public void setId(String id) {
-//        this.id = id;
-//    }
-
-//    public String getQuestion() {
-//        return Question;
-//    }
-//
-//    public void setQuestion(String question) {
-//        this.Question = question;
-//    }
-//
-//    public String getAnswer() {
-//        return Answer;
-//    }
-//
-//    public void setAnswer(String answer) {
-//        this.Answer = answer;
-//    }
 
 
 }

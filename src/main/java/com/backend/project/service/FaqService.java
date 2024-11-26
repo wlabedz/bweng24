@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+
+// service and managed by Spring.
 @Service
 public class FaqService {
 
@@ -18,11 +20,43 @@ public class FaqService {
         this.faqRepository = faqRepository;
     }
 
+    // Method to fetch all FAQ entries
     public List<Faq> getAllFaqs(){
         return faqRepository.findAll();
     }
 
-    public Faq getFaqById(String id){
-        return faqRepository.findById(id).get();
+    // --User--
+    // Save FAQ ( user-submission)
+    public void saveFaq(Faq faq){
+        faq.setApproved(false);
+        faqRepository.save(faq);
     }
+
+    // --Admin ---
+    public void approveFaq(String id){
+        Faq faq = faqRepository.findById(id)
+                .orElseThrow(() ->  new RuntimeException("Faq not found"));
+        faq.setApproved(true);
+        faqRepository.save(faq);
+    }
+
+    public void updateFaq(String id, Faq Updatedfaq){
+        faqRepository.findById(id)
+                .map(faq -> {
+                    faq.setQuestion(Updatedfaq.getQuestion());
+                    faq.setAnswer(Updatedfaq.getAnswer());
+                    return faqRepository.save(faq);
+                })
+                .orElseThrow(() -> new RuntimeException("Faq not found" + id));
+    }
+
+    public void deleteFaq(String id) {
+        if (!faqRepository.existsById(id)) {
+            throw new RuntimeException("Faq not found: " + id);
+        }
+        faqRepository.deleteById(id);
+    }
+
+
+
 }

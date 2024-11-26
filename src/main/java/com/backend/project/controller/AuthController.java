@@ -81,7 +81,11 @@ public class AuthController {
         }
         user.setRoles(Collections.singletonList(roles));
 
-        userRepository.save(user);
+        try {
+            userRepository.save(user);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Failed to register user: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
         return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
     }
