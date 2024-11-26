@@ -145,4 +145,28 @@ public class UserController {
         return ResponseEntity.ok(userEntity);
     }
 
+    @DeleteMapping("/user/photo")
+    public ResponseEntity<String> deleteUserPhoto(HttpServletRequest request) {
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        if (token != null && jwtGenerator.validateToken(token)) {
+            String username = jwtGenerator.getUsernameFromJWT(token);
+
+            UserEntity user = userService.getUserByUsername(username);
+
+            if (user != null && user.getPhoto() != null) {
+                userService.deleteUserPhoto(user);
+                return new ResponseEntity<>("Profile photo deleted successfully", HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("No profile photo to delete", HttpStatus.BAD_REQUEST);
+            }
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
 }

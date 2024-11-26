@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -100,6 +101,16 @@ public class UserService {
                 user.getMail(),
                 picture
         );
+    }
+
+    public void deleteUserPhoto(UserEntity user) {
+        UUID photoId = user.getPhoto();
+
+        if (photoId != null) {
+            userPhotoRepository.deleteById(photoId);
+            user.setPhoto(null);
+            userRepository.save(user);
+        }
     }
 
 }
