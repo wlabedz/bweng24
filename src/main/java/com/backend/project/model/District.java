@@ -24,7 +24,6 @@ public class District {
 
     private String name;
 
-    @OneToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER, orphanRemoval = true, mappedBy = "district")
     private List<Office> offices = new ArrayList<>();
 
 

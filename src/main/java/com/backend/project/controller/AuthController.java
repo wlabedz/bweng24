@@ -4,6 +4,7 @@ package com.backend.project.controller;
 import com.backend.project.dto.AuthResponseDto;
 import com.backend.project.dto.LoginDto;
 import com.backend.project.dto.RegisterDto;
+import com.backend.project.dto.ChangePasswordDto;
 import com.backend.project.model.Roles;
 import com.backend.project.model.UserEntity;
 import com.backend.project.repository.RoleRepository;
@@ -18,10 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 
@@ -89,5 +87,32 @@ public class AuthController {
 
         return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
     }
+
+@PostMapping("/change-password")
+public ResponseEntity<String> changePassword(@RequestHeader("Authorization") String token,
+                                             @RequestBody ChangePasswordDto changePasswordDto) {
+
+    String jwt = token.startsWith("Bearer ") ? token.substring(7) : token;
+
+    if (!jwtGenerator.validateToken(jwt)) {
+        return new ResponseEntity<>("Invalid or expired token", HttpStatus.UNAUTHORIZED);
+    }
+
+    String username = jwtGenerator.getUsernameFromJWT(jwt);
+
+    UserEntity user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (!passwordEncoder.matches(changePasswordDto.oldPassword(), user.getPassword())) {
+        return new ResponseEntity<>("Old password is incorrect", HttpStatus.BAD_REQUEST);
+    }
+
+    user.setPassword(passwordEncoder.encode(changePasswordDto.newPassword()));
+    userRepository.save(user);
+
+    return new ResponseEntity<>("Password updated successfully", HttpStatus.OK);
+}
+
+
 }
 

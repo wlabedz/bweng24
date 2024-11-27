@@ -44,12 +44,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/offices").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/offices").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/reviews").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/faqs").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/faqs/ask").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/faqs/{id}/approve").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/faqs/{id}/delete").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/faqs/{id}/update").hasAuthority("ADMIN")
-
+                        .requestMatchers(HttpMethod.POST, "/api/found_items/submit").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/found_items").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/found_items/description").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "api/offices/*").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "api/users").hasAuthority("ADMIN")
+                        //.requestMatchers(HttpMethod.DELETE, "api/users").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "api/users").hasAuthority("ADMIN")
                         .anyRequest().permitAll());
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();

@@ -31,7 +31,7 @@ public class UserEntity {
 
     private String salutation;
 
-    private String profileImagePath;
+    private UUID photo;
 
     private String country;
 
@@ -45,7 +45,7 @@ public class UserEntity {
         this.username = username;
         this.password = password;
         this.salutation = salutation;
-        this.profileImagePath = null;
+        this.photo = null;
         this.country = country;
     }
 }

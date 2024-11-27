@@ -19,21 +19,21 @@ public class Office {
     @Id
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "district_id")
     private District district;
 
     private String phoneNumber;
     private String address;
-    private String photo;
+
+    private UUID photoId;
+
     private String description;
 
-    public Office(District district, String phoneNumber, String address, String photo, String description){
+    public Office(District district, String phoneNumber, String address, UUID photo, String description){
         this.id = UUID.randomUUID();
         this.district = district;
         this.phoneNumber = phoneNumber;
         this.address = address;
-        this.photo = photo;
+        this.photoId = photo;
         this.description = description;
     }
 }
