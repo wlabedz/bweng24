@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/faqs/{id}/approve").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/faqs/{id}/delete").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/faqs/{id}/update").hasAuthority("ADMIN")
+//                        .requestMatchers(HttpMethod.PUT, "/api/faqs/{id}/update").permitAll()
+
 
                         .anyRequest().permitAll());
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

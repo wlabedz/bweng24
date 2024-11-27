@@ -37,7 +37,8 @@ public class Faq {
     public Faq(String Question, String Answer, Boolean Approved) {
         this.Question = Question;
         this.Answer = Answer;
-        this.Approved = Approved;
+        this.Approved = Approved != null ? Approved : false; // Default to false if null
+
     }
 
 

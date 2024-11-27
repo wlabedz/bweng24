@@ -26,7 +26,7 @@ public class FaqService {
     }
 
     // --User--
-    // Save FAQ ( user-submission)
+    // Save FAQ Question
     public void saveFaq(Faq faq){
         faq.setApproved(false);
         faqRepository.save(faq);
@@ -45,6 +45,7 @@ public class FaqService {
                 .map(faq -> {
                     faq.setQuestion(Updatedfaq.getQuestion());
                     faq.setAnswer(Updatedfaq.getAnswer());
+                    faq.setApproved((Updatedfaq.isApproved()));
                     return faqRepository.save(faq);
                 })
                 .orElseThrow(() -> new RuntimeException("Faq not found" + id));
