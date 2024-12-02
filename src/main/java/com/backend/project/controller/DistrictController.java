@@ -17,7 +17,7 @@ import java.util.List;
 @RequestMapping("api")
 public class DistrictController {
 
-    private DistrictService districtService;
+    private final DistrictService districtService;
 
     public DistrictController(DistrictService districtService) {
         this.districtService = districtService;

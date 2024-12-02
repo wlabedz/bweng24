@@ -3,6 +3,8 @@ package com.backend.project.controller;
 
 import com.backend.project.dto.OfficeDto;
 import com.backend.project.dto.ReviewDto;
+import com.backend.project.exceptions.InvalidToken;
+import com.backend.project.exceptions.UserNotFoundException;
 import com.backend.project.model.Office;
 import com.backend.project.model.Review;
 import com.backend.project.model.UserEntity;
@@ -27,13 +29,9 @@ import java.util.List;
 public class ReviewController {
 
     private final ReviewService reviewService;
-    private final JWTGenerator jwtGenerator;
-    private final UserService userService;
 
-    public ReviewController(ReviewService reviewService, JWTGenerator jwtGenerator, UserService userService) {
+    public ReviewController(ReviewService reviewService) {
         this.reviewService = reviewService;
-        this.jwtGenerator = jwtGenerator;
-        this.userService = userService;
     }
 
     @GetMapping("/reviews")
@@ -43,25 +41,13 @@ public class ReviewController {
 
     @PostMapping("/reviews")
     public ResponseEntity<Review> addReview(HttpServletRequest request,@RequestBody @Valid ReviewDto reviewDto) {
-
-        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
-
-        UserEntity user;
-        if (token != null && jwtGenerator.validateToken(token)) {
-            String username = jwtGenerator.getUsernameFromJWT(token);
-
-            user = userService.getUserByUsername(username);
-        } else {
+        try {
+            String id = reviewService.addReview(reviewDto, request).getId().toString();
+            return ResponseEntity
+                    .created(URI.create("/reviews/" + id))
+                    .build();
+        }catch(InvalidToken | UserNotFoundException exception){
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-
-        String id = reviewService.addReview(reviewDto, user).getId().toString();
-        return ResponseEntity
-                .created(URI.create("/reviews/" + id))
-                .build();
     }
-
 }

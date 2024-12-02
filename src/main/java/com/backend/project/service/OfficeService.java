@@ -19,9 +19,9 @@ import java.util.UUID;
 @Service
 public class OfficeService {
 
-    private OfficeRepository officeRepository;
-    private DistrictRepository districtRepository;
-    private OfficePhotoService officePhotoService;
+    private final OfficeRepository officeRepository;
+    private final DistrictRepository districtRepository;
+    private final OfficePhotoService officePhotoService;
 
     public OfficeService(OfficeRepository officeRepository,
                        DistrictRepository districtRepository,
@@ -33,7 +33,6 @@ public class OfficeService {
 
     public Optional<List<OfficeRetDto>> getAllOffices() {
         List<OfficeRetDto> off =  officeRepository.findAll().stream().map(this::mapToDto).toList();
-
         return off.isEmpty() ? Optional.empty() : Optional.of(off);
     }
 
@@ -117,7 +116,6 @@ public class OfficeService {
         }
 
         String picture = null;
-
         if(off != null){
             picture = off.getContent();
         }
