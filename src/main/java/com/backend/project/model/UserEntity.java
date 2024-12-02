@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +36,8 @@ public class UserEntity {
 
     private String country;
 
+    private LocalDateTime createdAt;
+
     private List<Roles> roles = new ArrayList<>();
 
     public UserEntity(String name, String surname, String mail, String username, String password, String salutation, String country){
@@ -47,5 +50,6 @@ public class UserEntity {
         this.salutation = salutation;
         this.photo = null;
         this.country = country;
+        this.createdAt = LocalDateTime.now();
     }
 }

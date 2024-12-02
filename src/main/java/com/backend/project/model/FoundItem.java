@@ -7,6 +7,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 
@@ -26,6 +27,8 @@ public class FoundItem {
     private LocalDate foundDate;
     private String foundPlace;
     private UserEntity user;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public FoundItem(UserEntity user, String name, String category, String description, String office, String photo, LocalDate foundDate, String foundPlace){
         this.id = UUID.randomUUID();
@@ -37,6 +40,7 @@ public class FoundItem {
         this.foundDate = foundDate;
         this.foundPlace = foundPlace;
         this.user = user;
+        this.createdAt = LocalDateTime.now();
     }
 
     public String getDescription() { return description; }
@@ -60,6 +64,13 @@ public class FoundItem {
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
 
+    public LocalDateTime getUpdatedAt(){ return updatedAt;}
+
+    public void setUpdatedAt(LocalDateTime date) { this.updatedAt = date; }
+
+    public LocalDateTime getCreatedAt(){ return createdAt;}
+
+    public void setCreatedAt(LocalDateTime date) { this.createdAt = date; }
 
     public String getPhoto() { return photo; }
     public void setPhoto(String photo) { this.photo = photo; }

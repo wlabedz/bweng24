@@ -1,34 +1,35 @@
 package com.backend.project.service;
 
 import com.backend.project.dto.UserDto;
-import com.backend.project.exceptions.OfficeNotFoundException;
+import com.backend.project.exceptions.InvalidToken;
 import com.backend.project.exceptions.UserNotFoundException;
-import com.backend.project.model.Office;
-import com.backend.project.model.Roles;
 import com.backend.project.model.UserEntity;
 import com.backend.project.model.UserPhoto;
-import com.backend.project.repository.RoleRepository;
-import com.backend.project.repository.UserPhotoRepository;
 import com.backend.project.repository.UserRepository;
-import org.springframework.security.core.userdetails.User;
+import com.backend.project.security.JWTGenerator;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class UserService {
 
-    private UserRepository userRepository;
-    private RoleRepository roleRepository;
-    private UserPhotoRepository userPhotoRepository;
+    private final UserRepository userRepository;
+    private final JWTGenerator jwtGenerator;
+    private UserPhotoService userPhotoService;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, UserPhotoRepository userPhotoRepository){
+    public UserService(UserRepository userRepository, UserPhotoService userPhotoService, JWTGenerator jwtGenerator){
         this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.userPhotoRepository = userPhotoRepository;
+        this.jwtGenerator = jwtGenerator;
+        this.userPhotoService = userPhotoService;
+    }
+
+    @Autowired
+    public void setUserPhotoService(UserPhotoService userPhotoService) {
+        this.userPhotoService = userPhotoService;
     }
 
     public UserEntity getUserByUsername(String username){
@@ -37,6 +38,47 @@ public class UserService {
                 .filter(userEntity -> userEntity.getUsername().equals(username))
                 .findFirst().orElseThrow(() -> new UserNotFoundException(username));
     }
+
+    public UserDto getUserByRequest(HttpServletRequest request) throws UserNotFoundException, InvalidToken {
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        }
+
+        if (jwtGenerator.validateToken(token)) {
+            String username = jwtGenerator.getUsernameFromJWT(token);
+            UserEntity user;
+
+            try{
+                user = getUserByUsername(username);
+            } catch(UserNotFoundException exc){
+                throw new UserNotFoundException(exc.getMessage());
+            }
+
+            UserPhoto usph = null;
+
+            if(user.getPhoto() != null){
+                usph = userPhotoService.getPhotoById(user.getPhoto()).orElse(null);
+            }
+
+            String content;
+            if(usph != null){
+                content = usph.getContent();
+            }else{
+                content = null;
+            }
+
+            UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content);;
+            return userDTO;
+        } else {
+            throw new InvalidToken("Token cannot be validated");
+        }
+    }
+
+
 
     public UserEntity updateUser(UserEntity user) {
         UserEntity existingUser = userRepository.findByUsername(user.getUsername())
@@ -54,7 +96,7 @@ public class UserService {
         UserEntity existingUser = userRepository.findByUsername(userDto.username()).orElseThrow();
 
         if(existingUser.getPhoto() != null) {
-            userPhotoRepository.deleteById(existingUser.getPhoto());
+            userPhotoService.deletePhotoById(existingUser.getPhoto());
         }
         existingUser.setPhoto(null);
         UserEntity userEntity = userRepository.save(existingUser);
@@ -76,7 +118,7 @@ public class UserService {
                         .findFirst().
                         orElseThrow(() -> new UserNotFoundException(username));
         if(userToDelete.getPhoto() != null){
-            userPhotoRepository.deleteById(userToDelete.getPhoto());
+            userPhotoService.deletePhotoById(userToDelete.getPhoto());
         }
         userRepository.deleteById(userToDelete.getId());
     }
@@ -85,15 +127,13 @@ public class UserService {
     private UserDto mapToDto(UserEntity user) {
         UserPhoto userPhoto = null;
         if(user.getPhoto() != null){
-            userPhoto = userPhotoRepository.findById(user.getPhoto()).orElse(null);
+            userPhoto = userPhotoService.getPhotoById(user.getPhoto()).orElse(null);
         }
 
         String picture = null;
-
         if(userPhoto != null){
             picture = userPhoto.getContent();
         }
-
         return new UserDto(
                 user.getUsername(),
                 user.getName(),
@@ -101,16 +141,6 @@ public class UserService {
                 user.getMail(),
                 picture
         );
-    }
-
-    public void deleteUserPhoto(UserEntity user) {
-        UUID photoId = user.getPhoto();
-
-        if (photoId != null) {
-            userPhotoRepository.deleteById(photoId);
-            user.setPhoto(null);
-            userRepository.save(user);
-        }
     }
 
 }

@@ -7,6 +7,8 @@ import com.backend.project.repository.FaqRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 // service and managed by Spring.
@@ -46,6 +48,7 @@ public class FaqService {
                     faq.setQuestion(Updatedfaq.getQuestion());
                     faq.setAnswer(Updatedfaq.getAnswer());
                     faq.setApproved((Updatedfaq.isApproved()));
+                    faq.setUpdatedAt(LocalDateTime.now());
                     return faqRepository.save(faq);
                 })
                 .orElseThrow(() -> new RuntimeException("Faq not found" + id));

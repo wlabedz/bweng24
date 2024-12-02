@@ -11,6 +11,7 @@ import com.backend.project.repository.DistrictRepository;
 import com.backend.project.repository.OfficeRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,6 +104,7 @@ public class OfficeService {
                    existingOffice.setAddress(officeDto.address());
                    existingOffice.setDistrict(d);
                    existingOffice.setPhoneNumber(officeDto.phoneNumber());
+                   existingOffice.setLastUpdatedAt(LocalDateTime.now());
                    return officeRepository.save(existingOffice);
                }).findFirst().orElse(null);
    }

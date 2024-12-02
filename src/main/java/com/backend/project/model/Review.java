@@ -6,10 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.security.core.userdetails.User;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+
 import java.util.UUID;
 
 
@@ -25,9 +24,13 @@ public class Review {
 
     private String opinion;
 
+    private LocalDateTime createdAt;
+
+
     public Review(UserEntity user, String opinion){
         this.id = UUID.randomUUID();
         this.user = user;
         this.opinion = opinion;
+        this.createdAt = LocalDateTime.now();
     }
 }

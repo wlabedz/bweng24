@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,6 +64,7 @@ public class FoundItemService {
                 .orElseThrow(() -> new ItemNotFoundException(id));
 
         existingItem.setDescription(newDescription);
+        existingItem.setUpdatedAt(LocalDateTime.now());
         return itemRepository.save(existingItem);
     }
 
