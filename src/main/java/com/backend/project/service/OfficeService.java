@@ -9,6 +9,7 @@ import com.backend.project.model.Office;
 import com.backend.project.model.OfficePhoto;
 import com.backend.project.repository.DistrictRepository;
 import com.backend.project.repository.OfficeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,6 +24,7 @@ public class OfficeService {
     private final DistrictRepository districtRepository;
     private final OfficePhotoService officePhotoService;
 
+    @Autowired
     public OfficeService(OfficeRepository officeRepository,
                        DistrictRepository districtRepository,
                         OfficePhotoService officePhotoService) {

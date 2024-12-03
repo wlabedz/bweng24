@@ -1,6 +1,8 @@
 package com.backend.project.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
-public record DistrictDto(@NotNull int id, @NotBlank String name){}
+public record DistrictDto(
+        @Min(1) @Max(23) int id,
+        @NotBlank @Size(max = 30) String name
+) {}

@@ -8,6 +8,7 @@ import com.backend.project.model.UserEntity;
 import com.backend.project.repository.ReviewRepository;
 import com.backend.project.security.JWTGenerator;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ public class ReviewService {
     private final JWTGenerator jwtGenerator;
     private final UserService userService;
 
+    @Autowired
     public ReviewService(ReviewRepository reviewRepository, JWTGenerator jwtGenerator, UserService userService){
         this.reviewRepository = reviewRepository;
         this.jwtGenerator = jwtGenerator;

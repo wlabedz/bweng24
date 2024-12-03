@@ -7,6 +7,7 @@ import com.backend.project.model.Office;
 import com.backend.project.service.DistrictService;
 import com.backend.project.service.OfficeService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,11 +15,12 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("api")
+@RequestMapping("/api")
 public class DistrictController {
 
     private final DistrictService districtService;
 
+    @Autowired
     public DistrictController(DistrictService districtService) {
         this.districtService = districtService;
     }

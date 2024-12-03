@@ -2,6 +2,7 @@ package com.backend.project.service;
 
 import com.backend.project.model.OfficePhoto;
 import com.backend.project.repository.OfficePhotoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,8 +11,9 @@ import java.util.UUID;
 
 @Service
 public class OfficePhotoService {
-    private OfficePhotoRepository officePhotoRepository;
+    private final OfficePhotoRepository officePhotoRepository;
 
+    @Autowired
     public OfficePhotoService(OfficePhotoRepository officePhotoRepository){
         this.officePhotoRepository = officePhotoRepository;
     }

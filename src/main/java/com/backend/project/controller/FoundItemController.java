@@ -11,6 +11,7 @@ import com.backend.project.service.FoundItemService;
 import com.backend.project.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,7 @@ public class FoundItemController {
     private final JWTGenerator jwtGenerator;
     private final UserService userService;
 
+    @Autowired
     public FoundItemController(FoundItemService service, JWTGenerator jwtGenerator, UserService userService) {
         this.itemService = service;
         this.jwtGenerator = jwtGenerator;

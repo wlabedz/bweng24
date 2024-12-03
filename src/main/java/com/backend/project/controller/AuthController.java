@@ -5,11 +5,13 @@ import com.backend.project.dto.AuthResponseDto;
 import com.backend.project.dto.LoginDto;
 import com.backend.project.dto.RegisterDto;
 import com.backend.project.dto.ChangePasswordDto;
+import com.backend.project.exceptions.*;
 import com.backend.project.model.Roles;
 import com.backend.project.model.UserEntity;
 import com.backend.project.repository.RoleRepository;
 import com.backend.project.repository.UserRepository;
 import com.backend.project.security.JWTGenerator;
+import com.backend.project.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,92 +30,39 @@ import java.util.Collections;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private AuthenticationManager authenticationmanager;
-    private UserRepository userRepository;
-    private RoleRepository roleRepository;
-    private PasswordEncoder passwordEncoder;
-
-    private JWTGenerator jwtGenerator;
-
+    private final UserService userService;
 
     @Autowired
-    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository,
-                          RoleRepository roleRepository, PasswordEncoder passwordEncoder,
-                          JWTGenerator jwtGenerator){
-        this.authenticationmanager = authenticationManager;
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtGenerator = jwtGenerator;
+    public AuthController(UserService userService){
+        this.userService = userService;
     }
 
     @PostMapping("login")
     public ResponseEntity<AuthResponseDto> login(@RequestBody @Valid LoginDto loginDto){
-        Authentication authentication = authenticationmanager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginDto.username(),
-                        loginDto.password()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String token = jwtGenerator.generateToken(authentication);
-        return new ResponseEntity<>(new AuthResponseDto(token), HttpStatus.OK);
+        AuthResponseDto authResponseDto = userService.login(loginDto);
+        return new ResponseEntity<>(authResponseDto, HttpStatus.OK);
     }
 
     @PostMapping("register")
     public ResponseEntity<String> register(@RequestBody @Valid RegisterDto registerDto){
-        if(userRepository.existsByUsername(registerDto.username())){
-            return new ResponseEntity<>("Username is taken", HttpStatus.BAD_REQUEST);
+        try{
+            userService.registerUser(registerDto);
+            return ResponseEntity.ok("Successfully registered user");
+        }catch(UsernameTakenException | EmailTakenException exception){
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.CONFLICT);
         }
-
-        if(userRepository.existsByMail(registerDto.mail())){
-            return new ResponseEntity<>("Email is taken", HttpStatus.BAD_REQUEST);
-        }
-
-        UserEntity user = new UserEntity(registerDto.name(), registerDto.surname(), registerDto.mail(), registerDto.username(),passwordEncoder.encode(registerDto.password()), registerDto.salutation(), registerDto.country());
-
-        Roles roles;
-
-        if(registerDto.username().startsWith("admin")){
-            roles = roleRepository.findByName("ADMIN").get();
-        }
-        else{
-            roles = roleRepository.findByName("USER").get();
-        }
-        user.setRoles(Collections.singletonList(roles));
-
-        try {
-            userRepository.save(user);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Failed to register user: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
     }
 
-@PostMapping("/change-password")
-public ResponseEntity<String> changePassword(@RequestHeader("Authorization") String token,
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@RequestHeader("Authorization") String token,
                                              @RequestBody ChangePasswordDto changePasswordDto) {
-
-    String jwt = token.startsWith("Bearer ") ? token.substring(7) : token;
-
-    if (!jwtGenerator.validateToken(jwt)) {
-        return new ResponseEntity<>("Invalid or expired token", HttpStatus.UNAUTHORIZED);
+        try{
+            userService.changePassword(changePasswordDto,token);
+            return ResponseEntity.ok("Password successfully changed");
+        }catch(InvalidToken | InvalidCredentialsException | UsernameNotFoundException exception){
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.UNAUTHORIZED);
+        }
     }
-
-    String username = jwtGenerator.getUsernameFromJWT(jwt);
-
-    UserEntity user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-    if (!passwordEncoder.matches(changePasswordDto.oldPassword(), user.getPassword())) {
-        return new ResponseEntity<>("Old password is incorrect", HttpStatus.BAD_REQUEST);
-    }
-
-    user.setPassword(passwordEncoder.encode(changePasswordDto.newPassword()));
-    userRepository.save(user);
-
-    return new ResponseEntity<>("Password updated successfully", HttpStatus.OK);
-}
-
 
 }
 

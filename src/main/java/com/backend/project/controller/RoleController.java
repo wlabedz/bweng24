@@ -7,6 +7,7 @@ import com.backend.project.model.Office;
 import com.backend.project.model.Roles;
 import com.backend.project.service.RolesService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,8 +18,9 @@ import java.net.URI;
 @RestController
 public class RoleController {
 
-    private RolesService rolesService;
+    private final RolesService rolesService;
 
+    @Autowired
     public RoleController(RolesService rolesService){
         this.rolesService = rolesService;
     }

@@ -14,8 +14,12 @@ import java.util.List;
 @Service
 public class DistrictService {
 
+    private final DistrictRepository districtRepository;
+
     @Autowired
-    private DistrictRepository districtRepository;
+    public DistrictService(DistrictRepository districtRepository){
+        this.districtRepository = districtRepository;
+    }
 
     public List<District> getAllDistricts() {
         return districtRepository.findAll();

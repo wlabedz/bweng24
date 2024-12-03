@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 public class FaqService {
 
-    private FaqRepository faqRepository;
+    private final FaqRepository faqRepository;
 
     @Autowired
     public FaqService(FaqRepository faqRepository) {

@@ -5,6 +5,7 @@ import com.backend.project.exceptions.ItemNotFoundException;
 import com.backend.project.model.FoundItem;
 import com.backend.project.model.UserEntity;
 import com.backend.project.repository.FoundItemRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -21,9 +22,9 @@ import java.util.UUID;
 @Service
 public class FoundItemService {
 
-    private FoundItemRepository itemRepository;
-    private static final String IMAGE_DIRECTORY = "/src/main/resources/items";
+    private final FoundItemRepository itemRepository;
 
+    @Autowired
     public FoundItemService(FoundItemRepository repository){
         this.itemRepository = repository;
     }

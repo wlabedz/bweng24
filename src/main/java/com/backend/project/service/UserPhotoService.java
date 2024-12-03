@@ -26,6 +26,7 @@ public class UserPhotoService {
     private final JWTGenerator jwtGenerator;
     private final UserRepository userRepository;
 
+    @Autowired
     public UserPhotoService(UserPhotoRepository userPhotoRepository, JWTGenerator jwtGenerator, UserRepository userRepository) {
         this.userPhotoRepository = userPhotoRepository;
         this.jwtGenerator = jwtGenerator;

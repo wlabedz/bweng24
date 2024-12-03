@@ -6,6 +6,7 @@ import com.backend.project.exceptions.UserNotFoundException;
 import com.backend.project.model.UserPhoto;
 import com.backend.project.service.UserPhotoService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ public class UserPhotoController {
 
     private final UserPhotoService userPhotoService;
 
+    @Autowired
     public UserPhotoController(UserPhotoService userPhotoService){
         this.userPhotoService = userPhotoService;
     }
