@@ -57,46 +57,27 @@ public class UserService {
     }
 
     public UserDto getUserByRequest(HttpServletRequest request) throws UserNotFoundException, InvalidToken {
-        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+        UserEntity user = getUserFromToken(request);
 
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        } else {
-            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        UserPhoto usph = null;
+
+        if(user.getPhoto() != null){
+            usph = userPhotoService.getPhotoById(user.getPhoto()).orElse(null);
         }
 
-        if (jwtGenerator.validateToken(token)) {
-            String username = jwtGenerator.getUsernameFromJWT(token);
-            UserEntity user;
-
-            try{
-                user = getUserByUsername(username);
-            } catch(UserNotFoundException exc){
-                throw new UserNotFoundException(exc.getMessage());
-            }
-
-            UserPhoto usph = null;
-
-            if(user.getPhoto() != null){
-                usph = userPhotoService.getPhotoById(user.getPhoto()).orElse(null);
-            }
-
-            String content;
-            if(usph != null){
-                content = usph.getContent();
-            }else{
-                content = null;
-            }
-
-            UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content, user.getSalutation(), user.getCountry());;
-            return userDTO;
-        } else {
-            throw new InvalidToken("Token cannot be validated");
+        String content;
+        if(usph != null){
+            content = usph.getContent();
+        }else{
+            content = null;
         }
+
+        UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content, user.getSalutation(), user.getCountry());;
+        return userDTO;
     }
 
 
-    public UserDto updateUser(UserDto userDto, HttpServletRequest request) throws InvalidToken {
+    public UserDto updateUser(UserDto userDto, HttpServletRequest request) throws InvalidToken, NotAllowedException {
         String token = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (token != null && token.startsWith("Bearer ")) {
@@ -110,7 +91,7 @@ public class UserService {
         List<String> roles = jwtGenerator.getRolesFromJWT(token);
 
         if(!roles.contains("ADMIN") && !Objects.equals(username, userDto.username())){
-            throw new InvalidToken("You are not authorized to perform this operation");
+            throw new NotAllowedException(username);
         }
 
         UserEntity existingUser = userRepository.findByUsername(userDto.username()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -229,5 +210,25 @@ public class UserService {
                 user.getSalutation(),
                 user.getCountry()
         );
+    }
+
+    private UserEntity getUserFromToken(HttpServletRequest request) throws InvalidToken {
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        }
+
+        String username = jwtGenerator.getUsernameFromJWT(token);
+        UserEntity user;
+
+        user = userRepository.findByUsername(username).orElse(null);
+        if(user == null){
+            throw new UserNotFoundException("User could not have been found.");
+        }
+
+        return user;
     }
 }

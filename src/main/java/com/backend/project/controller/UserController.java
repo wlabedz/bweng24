@@ -2,6 +2,7 @@ package com.backend.project.controller;
 
 import com.backend.project.dto.UserDto;
 import com.backend.project.exceptions.InvalidToken;
+import com.backend.project.exceptions.NotAllowedException;
 import com.backend.project.exceptions.UserNotFoundException;
 import com.backend.project.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,6 +56,8 @@ public class UserController {
             return ResponseEntity.ok(userEntity);
         }catch(InvalidToken exception){
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }catch(NotAllowedException exception){
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
     }
 

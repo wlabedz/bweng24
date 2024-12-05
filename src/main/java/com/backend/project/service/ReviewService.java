@@ -41,20 +41,16 @@ public class ReviewService {
             throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
         }
 
-        if (jwtGenerator.validateToken(token)) {
-            String username = jwtGenerator.getUsernameFromJWT(token);
-            UserEntity user;
+        String username = jwtGenerator.getUsernameFromJWT(token);
+        UserEntity user;
 
-            try{
-                user = userService.getUserByUsername(username);
-            } catch(UserNotFoundException exc){
-                throw new UserNotFoundException(exc.getMessage());
-            }
-
-            Review review = new Review(user, reviewDto.opinion());
-            return reviewRepository.save(review);
-        } else {
-            throw new InvalidToken("Token cannot be validated");
+        try{
+            user = userService.getUserByUsername(username);
+        } catch(UserNotFoundException exc){
+            throw new UserNotFoundException(exc.getMessage());
         }
+
+        Review review = new Review(user, reviewDto.opinion());
+        return reviewRepository.save(review);
     }
 }

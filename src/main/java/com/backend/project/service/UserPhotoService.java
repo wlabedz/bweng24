@@ -39,47 +39,27 @@ public class UserPhotoService {
 
 
     public UserPhoto addPhoto(MultipartFile content, HttpServletRequest request) throws InvalidToken, FailedUploadingPhoto {
-        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        } else {
-            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        UserEntity user = getUserFromToken(request);
+        String base64Image;
+        try {
+            byte[] imageBytes = content.getBytes();
+            base64Image = Base64.getEncoder().encodeToString(imageBytes);
+        } catch (Exception e) {
+            throw new FailedUploadingPhoto("Photo cannot be converted");
         }
 
-        if (jwtGenerator.validateToken(token)) {
-            String username = jwtGenerator.getUsernameFromJWT(token);
-            UserEntity user;
+        UserPhoto usph = new UserPhoto(base64Image);
+        userPhotoRepository.save(usph);
 
-            user = userRepository.findByUsername(username).orElse(null);
-
-            if(user == null){
-                throw new UserNotFoundException("User could not have been found");
-            }
-
-            String base64Image;
-            try {
-                byte[] imageBytes = content.getBytes();
-                base64Image = Base64.getEncoder().encodeToString(imageBytes);
-            } catch (Exception e) {
-                throw new FailedUploadingPhoto("Photo cannot be converted");
-            }
-
-            UserPhoto usph = new UserPhoto(base64Image);
-            userPhotoRepository.save(usph);
-
-            UUID toDelete = user.getPhoto();
-            if(toDelete != null){
-                deletePhotoById(toDelete);
-            }
-            user.setPhoto(usph.getId());
-
-            userRepository.save(user);
-
-            return userPhotoRepository.save(usph);
-        } else {
-            throw new InvalidToken("Token cannot be validated");
+        UUID toDelete = user.getPhoto();
+        if(toDelete != null){
+            deletePhotoById(toDelete);
         }
+        user.setPhoto(usph.getId());
+
+        userRepository.save(user);
+
+        return userPhotoRepository.save(usph);
     }
 
 
@@ -89,6 +69,16 @@ public class UserPhotoService {
 
 
     public void deletePhoto(HttpServletRequest request) throws InvalidToken, UserNotFoundException {
+        UserEntity user = getUserFromToken(request);
+        deletePhotoById(user.getPhoto());
+    }
+
+    public void deletePhotoById(UUID id){
+        userPhotoRepository.deleteById(id);
+    }
+
+
+    private UserEntity getUserFromToken(HttpServletRequest request) throws InvalidToken {
         String token = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (token != null && token.startsWith("Bearer ")) {
@@ -97,21 +87,14 @@ public class UserPhotoService {
             throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
         }
 
-        if (jwtGenerator.validateToken(token)) {
-            String username = jwtGenerator.getUsernameFromJWT(token);
-            UserEntity user;
+        String username = jwtGenerator.getUsernameFromJWT(token);
+        UserEntity user;
 
-            user = userRepository.findByUsername(username).orElse(null);
-            if(user == null){
-                throw new UserNotFoundException("User could not have been found.");
-            }
-            deletePhotoById(user.getPhoto());
-        }else{
-            throw new InvalidToken("Token cannot be validated");
+        user = userRepository.findByUsername(username).orElse(null);
+        if(user == null){
+            throw new UserNotFoundException("User could not have been found.");
         }
-    }
 
-    public void deletePhotoById(UUID id){
-        userPhotoRepository.deleteById(id);
+        return user;
     }
 }
