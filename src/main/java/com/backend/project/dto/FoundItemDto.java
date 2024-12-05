@@ -9,10 +9,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record FoundItemDto(
-        @NotBlank @Size(max = 50) String name,
-        @NotBlank @Size(max = 50) String category,
-        @NotBlank @Size(max = 300) String description,
-        @NotBlank @Size(max = 30) String office,
+        UUID id,
+        @NotBlank @Size(max = 30, message = "Name of the item cannot exceed 30 characters") String name,
+        @NotBlank @Size(max = 30, message = "Name of the item category cannot exceed 30 characters") String category,
+        @NotBlank @Size(max = 300, message = "Description cannot exceed 300 characters") String description,
+        @NotBlank String office,
         @NotBlank String photo,
         @NotNull @PastOrPresent LocalDate foundDate,
         @NotBlank String foundPlace
