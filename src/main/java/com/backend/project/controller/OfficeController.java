@@ -37,7 +37,7 @@ public class OfficeController {
 
 
     @PutMapping("/offices/{id}")
-    public ResponseEntity<Office> updateUser(@PathVariable String id, @RequestBody @Valid OfficeDto officeDto){
+    public ResponseEntity<Office> updateOffice(@PathVariable String id, @RequestBody @Valid OfficeDto officeDto){
         Office office = officeService.updateOffice(officeDto, id);
         return ResponseEntity.ok(office);
     }

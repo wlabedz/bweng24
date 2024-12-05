@@ -62,4 +62,14 @@ public class JWTGenerator {
         return false;
     }
 
+
+    public List<String> getRolesFromJWT(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(SecurityConstants.JWT_SECRET)
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("roles", List.class);
+    }
+
 }

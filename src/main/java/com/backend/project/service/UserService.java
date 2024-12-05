@@ -22,8 +22,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -86,7 +88,7 @@ public class UserService {
                 content = null;
             }
 
-            UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content);;
+            UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content, user.getSalutation(), user.getCountry());;
             return userDTO;
         } else {
             throw new InvalidToken("Token cannot be validated");
@@ -94,26 +96,37 @@ public class UserService {
     }
 
 
+    public UserDto updateUser(UserDto userDto, HttpServletRequest request) throws InvalidToken {
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-    public UserEntity updateUser(UserEntity user) {
-        UserEntity existingUser = userRepository.findByUsername(user.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        existingUser.setName(user.getName());
-        existingUser.setSurname(user.getSurname());
-        existingUser.setMail(user.getMail());
-        existingUser.setPhoto(user.getPhoto());
-
-        return userRepository.save(existingUser);
-    }
-
-    public UserDto patchUserPhoto(UserDto userDto){
-        UserEntity existingUser = userRepository.findByUsername(userDto.username()).orElseThrow();
-
-        if(existingUser.getPhoto() != null) {
-            userPhotoService.deletePhotoById(existingUser.getPhoto());
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
         }
-        existingUser.setPhoto(null);
+
+        String username = jwtGenerator.getUsernameFromJWT(token);
+
+        List<String> roles = jwtGenerator.getRolesFromJWT(token);
+
+        if(!roles.contains("ADMIN") && !Objects.equals(username, userDto.username())){
+            throw new InvalidToken("You are not authorized to perform this operation");
+        }
+
+        UserEntity existingUser = userRepository.findByUsername(userDto.username()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if(existingUser.getPhoto() != null && userDto.photo() == null) {
+            userPhotoService.deletePhotoById(existingUser.getPhoto());
+            existingUser.setPhoto(null);
+        }
+
+        existingUser.setName(userDto.name());
+        existingUser.setSurname(userDto.surname());
+        existingUser.setMail(userDto.mail());
+        existingUser.setCountry(userDto.country());
+        existingUser.setSalutation(userDto.salutation());
+        existingUser.setUpdatedAt(LocalDateTime.now());
+
         UserEntity userEntity = userRepository.save(existingUser);
         return mapToDto(userEntity);
     }
@@ -212,7 +225,9 @@ public class UserService {
                 user.getName(),
                 user.getSurname(),
                 user.getMail(),
-                picture
+                picture,
+                user.getSalutation(),
+                user.getCountry()
         );
     }
 }

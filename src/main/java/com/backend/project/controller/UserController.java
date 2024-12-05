@@ -49,9 +49,13 @@ public class UserController {
     }
 
     @PutMapping("/users")
-    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto updatedUserDto) {
-        UserDto userEntity = userService.patchUserPhoto(updatedUserDto);
-        return ResponseEntity.ok(userEntity);
+    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto updatedUserDto, HttpServletRequest request) {
+        try {
+            UserDto userEntity = userService.updateUser(updatedUserDto, request);
+            return ResponseEntity.ok(userEntity);
+        }catch(InvalidToken exception){
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
     }
 
 }

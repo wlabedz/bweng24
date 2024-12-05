@@ -21,7 +21,6 @@ public class OfficePhotoService {
 
     public OfficePhoto addPhoto(String content){
         OfficePhoto usph = new OfficePhoto(content);
-
         return officePhotoRepository.save(usph);
     }
 

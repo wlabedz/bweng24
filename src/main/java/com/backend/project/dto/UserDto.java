@@ -6,5 +6,7 @@ public record UserDto(@NotBlank String username,
                       @NotBlank String name,
                       @NotBlank String surname,
                       @NotBlank String mail,
-                      String photo) {
+                      String photo,
+                      @NotBlank String salutation,
+                      @NotBlank String country) {
 }

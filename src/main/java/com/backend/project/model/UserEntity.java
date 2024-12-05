@@ -38,6 +38,8 @@ public class UserEntity {
 
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     private List<Roles> roles = new ArrayList<>();
 
     public UserEntity(String name, String surname, String mail, String username, String password, String salutation, String country){
@@ -51,5 +53,6 @@ public class UserEntity {
         this.photo = null;
         this.country = country;
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = null;
     }
 }
