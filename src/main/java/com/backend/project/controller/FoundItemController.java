@@ -23,6 +23,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.Base64;
 import com.backend.project.dto.FoundItemDto;
 import java.util.List;
@@ -93,6 +94,19 @@ public class FoundItemController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    @GetMapping("/found_items/search")
+    public ResponseEntity<List<FoundItemDto>> searchFoundItems(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false)  LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate
+    ) {
+        List<FoundItemDto> items = itemService.searchItems(category, name, userId, startDate, endDate);
+        return ResponseEntity.ok(items);
+    }
+
 
 }
 

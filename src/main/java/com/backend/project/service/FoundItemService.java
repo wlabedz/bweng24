@@ -140,4 +140,27 @@ public class FoundItemService {
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
         foundItemRepository.deleteById(item.getId());
     }
+
+    public List<FoundItemDto> searchItems(String category, String name, UUID userId, LocalDate startDate, LocalDate endDate) {
+        List<FoundItem> items = foundItemRepository.findAll().stream()
+                .filter(item -> category == null || item.getCategory().equalsIgnoreCase(category))
+                .filter(item -> name == null || item.getName().toLowerCase().contains(name.toLowerCase()))
+                .filter(item -> userId == null || (item.getUser() != null && item.getUser().getId().equals(userId)))
+                .filter(item -> startDate == null || !item.getFoundDate().isBefore(startDate))
+                .filter(item -> endDate == null || !item.getFoundDate().isAfter(endDate))
+                .toList();
+
+        return items.stream()
+                .map(item -> new FoundItemDto(
+                        item.getId(),
+                        item.getName(),
+                        item.getCategory(),
+                        item.getDescription(),
+                        item.getOffice(),
+                        itemPhotoService.getPhotoById(item.getPhotoId()).getContent(),
+                        item.getFoundDate(),
+                        item.getFoundPlace()
+                ))
+                .collect(Collectors.toList());
+    }
 }
