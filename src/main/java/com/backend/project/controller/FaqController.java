@@ -1,6 +1,7 @@
 package com.backend.project.controller;
 
 
+import com.backend.project.dto.FaqDto;
 import com.backend.project.model.Faq;
 import com.backend.project.service.FaqService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,22 +30,15 @@ public class FaqController {
 
     //Endpoint
     @GetMapping
-    public List<Faq> getAllFaqs(){
-        return faqService.getAllFaqs();
+    public ResponseEntity<List<Faq>> getAllFaqs() {
+        List<Faq> faqs = faqService.getAllFaqs();
+        return ResponseEntity.ok(faqs);
     }
 
     // --- Users ---
-    public List<Faq> getApprovedFaqs(){
-        //Only return approved faqs
-        return faqService.getAllFaqs()
-                .stream()
-                .filter(Faq::isApproved)
-                .toList();
-    }
-
     @PostMapping("/ask")
-    public ResponseEntity<String> askQuestion(@RequestBody Faq faq){
-        faqService.saveFaq(faq);
+    public ResponseEntity<String> askQuestion(@RequestBody FaqDto faqDto){
+        faqService.saveFaq(faqDto);
         return ResponseEntity.ok("Question Submitted successfully!\n Wait for our staff to provide an answer\n");
     }
 
@@ -68,16 +61,13 @@ public class FaqController {
     }
 
     @PutMapping("/{id}/update")
-    public ResponseEntity<String> updateFaq(@PathVariable String id, @RequestBody Faq Updatedfaq){
+    public ResponseEntity<String> updateFaq(@PathVariable String id, @RequestBody FaqDto faqDto){
         try {
-            faqService.updateFaq(id, Updatedfaq);
+            faqService.updateFaq(id, faqDto);
             return ResponseEntity.ok("Faq Updated Successfully!");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("FAQ not found");
         }
 
     }
-
-
-
 }

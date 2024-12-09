@@ -7,7 +7,8 @@ import com.backend.project.repository.FaqRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,15 +23,18 @@ public class FaqService {
         this.faqRepository = faqRepository;
     }
 
-    // Method to fetch all FAQ entries
+    // Fetch all FAQ entries
     public List<Faq> getAllFaqs(){
         return faqRepository.findAll();
     }
 
     // --User--
-    // Save FAQ Question
-    public void saveFaq(Faq faq){
-        faq.setApproved(false);
+    public void saveFaq(FaqDto faqDto) {
+        Faq faq = new Faq(
+                faqDto.question(),
+                faqDto.answer(),
+                false
+        );
         faqRepository.save(faq);
     }
 
@@ -42,16 +46,13 @@ public class FaqService {
         faqRepository.save(faq);
     }
 
-    public void updateFaq(String id, Faq Updatedfaq){
-        faqRepository.findById(id)
-                .map(faq -> {
-                    faq.setQuestion(Updatedfaq.getQuestion());
-                    faq.setAnswer(Updatedfaq.getAnswer());
-                    faq.setApproved((Updatedfaq.isApproved()));
-                    faq.setUpdatedAt(LocalDateTime.now());
-                    return faqRepository.save(faq);
-                })
-                .orElseThrow(() -> new RuntimeException("Faq not found" + id));
+    public void updateFaq(String id, FaqDto faqDto){
+        Faq faq = faqRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("FAQ not found"));
+        faq.setQuestion(faqDto.question());
+        faq.setAnswer(faqDto.answer());
+        faq.setUpdatedAt(LocalDateTime.now());
+        faqRepository.save(faq);
     }
 
     public void deleteFaq(String id) {
