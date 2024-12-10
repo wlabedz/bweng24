@@ -1,14 +1,14 @@
 package com.backend.project.controller;
 
 import com.backend.project.dto.UserDto;
-import com.backend.project.exceptions.InvalidToken;
-import com.backend.project.exceptions.NotAllowedException;
-import com.backend.project.exceptions.UserNotFoundException;
+import com.backend.project.dto.changeEmailDto;
+import com.backend.project.exceptions.*;
 import com.backend.project.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -60,5 +60,27 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
     }
+
+
+    @PutMapping("/users/change-email")
+    public ResponseEntity<String> changeEmail(@RequestHeader("Authorization") String token,  @RequestBody changeEmailDto changeEmailDto)
+            throws InvalidToken, UsernameNotFoundException, InvalidCredentialsException, EmailTakenException {
+        
+        try{
+            String updatedUser = userService.changeEmail(changeEmailDto, token);
+            return ResponseEntity.ok(updatedUser);
+            
+        } catch (InvalidToken | UsernameNotFoundException | InvalidCredentialsException e) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        } catch (EmailTakenException e){
+            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+
+    }
+
+
+
+
+
 
 }

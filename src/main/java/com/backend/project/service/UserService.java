@@ -11,13 +11,10 @@ import com.backend.project.security.JWTGenerator;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -72,7 +69,7 @@ public class UserService {
             content = null;
         }
 
-        UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content, user.getSalutation(), user.getCountry());;
+        UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content, user.getSalutation(), user.getCountry());
         return userDTO;
     }
 
@@ -178,6 +175,36 @@ public class UserService {
         user.setPassword(newPassword);
         userRepository.save(user);
         return newPassword;
+    }
+
+    public String changeEmail(changeEmailDto emailDto, String token) throws InvalidToken, UsernameNotFoundException, InvalidCredentialsException, EmailTakenException {
+        String jwt = token.startsWith("Bearer ") ? token.substring(7) : token;
+
+        if(!jwtGenerator.validateToken(jwt)) {
+            throw new InvalidToken("Invalid or expired token");
+        }
+
+        String username = jwtGenerator.getUsernameFromJWT(jwt);
+
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if(!passwordEncoder.matches(emailDto.password(), user.getPassword())){
+            throw new InvalidCredentialsException("Password is incorrect");
+        }
+
+        //Check if email is already used by another account
+        if(userRepository.existsByMail(emailDto.newEmail())){
+            throw new EmailTakenException(emailDto.newEmail());
+        }
+
+        user.setMail(emailDto.newEmail());
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        return "Email successfully changed to " + emailDto.newEmail();
+
+
     }
 
     public AuthResponseDto login(LoginDto loginDto){
