@@ -8,6 +8,7 @@ This repository contains the backend code for a **Lost and Found Service**, buil
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [Configuration](#configuration)
+- [JWT and Spring Security](#jwt-and-spring-security)
 
 ---
 
@@ -64,4 +65,15 @@ Start the Spring Boot application:
 mvn spring-boot:run
 ```
 The application will start at http://localhost:8080.
+
+## JWT and Spring Security
+The Lost and Found Service uses JWT for stateless authentication and Spring Security for securing API endpoints.
+
+### Key Components
+ - AuthController
+ - CustomUserDetailsService
+ - JWTAuthenticationFilter
+ - JWTGenerator
+ - SecurityConfig
+
 
