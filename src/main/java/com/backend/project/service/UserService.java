@@ -130,21 +130,21 @@ public class UserService {
     }
 
     public UserEntity registerUser(RegisterDto registerDto) throws UsernameTakenException, EmailTakenException {
-        if(userRepository.existsByUsername(registerDto.username())){
-            throw new UsernameTakenException(registerDto.username());
+        if(userRepository.existsByUsername(registerDto.getUsername())){
+            throw new UsernameTakenException(registerDto.getUsername());
         }
 
-        if(userRepository.existsByMail(registerDto.mail())){
-            throw new EmailTakenException(registerDto.mail());
+        if(userRepository.existsByMail(registerDto.getMail())){
+            throw new EmailTakenException(registerDto.getMail());
         }
 
-        UserEntity user = new UserEntity(registerDto.name(), registerDto.surname(),
-                registerDto.mail(), registerDto.username(),passwordEncoder.encode(registerDto.password()),
-                registerDto.salutation(), registerDto.country());
+        UserEntity user = new UserEntity(registerDto.getName(), registerDto.getSurname(),
+                registerDto.getMail(), registerDto.getUsername(),passwordEncoder.encode(registerDto.getPassword()),
+                registerDto.getSalutation(), registerDto.getCountry());
 
         Roles roles;
 
-        if(registerDto.username().startsWith("admin")){
+        if(registerDto.getUsername().startsWith("admin")){
             roles = roleRepository.findByName("ADMIN").orElse(null);
         }
         else{
