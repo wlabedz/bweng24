@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -74,35 +75,31 @@ public class UserService {
     }
 
 
-    public UserDto updateUser(UserDto userDto, HttpServletRequest request) throws InvalidToken, NotAllowedException {
-        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+    public UserDto updateUser(String username, UserPatchDto userDto, HttpServletRequest request) throws InvalidToken, NotAllowedException {
+       // String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String token = Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION))
+                .filter(t -> t.startsWith("Bearer "))
+                .map(t -> t.substring(7))
+                .orElseThrow(() -> new InvalidToken("Invalid or missing token."));
 
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        } else {
-            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
-        }
 
-        String username = jwtGenerator.getUsernameFromJWT(token);
-
+        String requesterUsername  = jwtGenerator.getUsernameFromJWT(token);
         List<String> roles = jwtGenerator.getRolesFromJWT(token);
 
-        if(!roles.contains("ADMIN") && !Objects.equals(username, userDto.username())){
+        if(!roles.contains("ADMIN") && !Objects.equals(requesterUsername, username)){
             throw new NotAllowedException(username);
         }
 
-        UserEntity existingUser = userRepository.findByUsername(userDto.username()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        UserEntity existingUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        if(existingUser.getPhoto() != null && userDto.photo() == null) {
-            userPhotoService.deletePhotoById(existingUser.getPhoto());
-            existingUser.setPhoto(null);
-        }
+        // Update only specific fields
+        if(userDto.getName() != null) existingUser.setName(userDto.getName());
+        if (userDto.getSurname() != null) existingUser.setSurname(userDto.getSurname());
+        if (userDto.getMail() != null) existingUser.setMail(userDto.getMail());
+        if (userDto.getCountry() != null) existingUser.setCountry(userDto.getCountry());
+        if (userDto.getSalutation() != null) existingUser.setSalutation(userDto.getSalutation());
 
-        existingUser.setName(userDto.name());
-        existingUser.setSurname(userDto.surname());
-        existingUser.setMail(userDto.mail());
-        existingUser.setCountry(userDto.country());
-        existingUser.setSalutation(userDto.salutation());
         existingUser.setUpdatedAt(LocalDateTime.now());
 
         UserEntity userEntity = userRepository.save(existingUser);
