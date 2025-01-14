@@ -72,7 +72,7 @@ public class OfficeController {
             officeService.removeOffice(id);
             return new ResponseEntity<>(HttpStatus.OK);
         }catch(OfficeNotFoundException exception){
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 }
