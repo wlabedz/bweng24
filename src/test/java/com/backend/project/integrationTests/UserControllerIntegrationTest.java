@@ -70,6 +70,10 @@ public class UserControllerIntegrationTest {
                         .content(registerJson))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Successfully registered user"));
+
+
+        userRepository.deleteByUsername("johndoe");
+        roleRepository.deleteByName("USER");
     }
 
     @Test
@@ -97,6 +101,10 @@ public class UserControllerIntegrationTest {
                         .content(registerJson))
                 .andExpect(status().isConflict())
                 .andExpect(content().string("Username johndoe is already taken"));
+
+
+        userRepository.deleteByUsername("johndoe");
+        roleRepository.deleteByName("USER");
     }
 
     @Test
@@ -132,6 +140,10 @@ public class UserControllerIntegrationTest {
                         .content(loginJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("mock-jwt-token"));
+
+
+        userRepository.deleteByUsername("jane7");
+        roleRepository.deleteByName("USER");
     }
 
     @Test
@@ -182,5 +194,9 @@ public class UserControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("UpdatedName"))
                 .andExpect(jsonPath("$.mail").value("updated@example.com"));
+
+        userRepository.deleteByUsername("admin_jane9");
+        roleRepository.deleteByName("ADMIN");
+
     }
 }
