@@ -10,4 +10,6 @@ public interface RoleRepository extends MongoRepository<Roles,UUID> {
 
     Optional<Roles> findByName(String name);
 
+    int deleteByName(String name);
+
 }

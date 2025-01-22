@@ -2,14 +2,15 @@ package com.backend.project.service;
 
 import com.backend.project.dto.*;
 import com.backend.project.exceptions.*;
+import com.backend.project.model.PhotoUser;
 import com.backend.project.model.Roles;
 import com.backend.project.model.UserEntity;
-import com.backend.project.model.UserPhoto;
 import com.backend.project.repository.RoleRepository;
 import com.backend.project.repository.UserRepository;
 import com.backend.project.security.JWTGenerator;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,9 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 public class UserService {
@@ -53,10 +52,10 @@ public class UserService {
                 .findFirst().orElseThrow(() -> new UserNotFoundException(username));
     }
 
-    public UserDto getUserByRequest(HttpServletRequest request) throws UserNotFoundException, InvalidToken {
+    public UserDto getUserByRequest(HttpServletRequest request) throws FileException, UserNotFoundException, InvalidToken {
         UserEntity user = getUserFromToken(request);
 
-        UserPhoto usph = null;
+        PhotoUser usph = null;
 
         if(user.getPhoto() != null){
             usph = userPhotoService.getPhotoById(user.getPhoto()).orElse(null);
@@ -64,45 +63,71 @@ public class UserService {
 
         String content;
         if(usph != null){
-            content = usph.getContent();
+            try{
+                Resource photo = userPhotoService.asResource(usph);
+                byte[] imageBytes = photo.getContentAsByteArray();
+                content = Base64.getEncoder().encodeToString(imageBytes);
+            }catch(Exception e){
+                throw new FileException("Cannot load user picture",e);
+            }
         }else{
             content = null;
         }
 
-        UserDto userDTO = new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content, user.getSalutation(), user.getCountry());
-        return userDTO;
+        return new UserDto(user.getUsername(), user.getName(), user.getSurname(), user.getMail(), content, user.getSalutation(), user.getCountry());
     }
 
 
-    public UserDto updateUser(UserDto userDto, HttpServletRequest request) throws InvalidToken, NotAllowedException {
-        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+    public UserDto updateUser(String username, UserPatchDto userDto, HttpServletRequest request) throws InvalidToken, NotAllowedException, EmailTakenException, UsernameTakenException, UsernameForbiddenException {
+        // String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String token = Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION))
+                .filter(t -> t.startsWith("Bearer "))
+                .map(t -> t.substring(7))
+                .orElseThrow(() -> new InvalidToken("Invalid or missing token."));
 
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        } else {
-            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
-        }
 
-        String username = jwtGenerator.getUsernameFromJWT(token);
-
+        String requesterUsername  = jwtGenerator.getUsernameFromJWT(token);
         List<String> roles = jwtGenerator.getRolesFromJWT(token);
 
-        if(!roles.contains("ADMIN") && !Objects.equals(username, userDto.username())){
+        if(!roles.contains("ADMIN") && !Objects.equals(requesterUsername, username)){
             throw new NotAllowedException(username);
         }
 
-        UserEntity existingUser = userRepository.findByUsername(userDto.username()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        UserEntity existingUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        if(existingUser.getPhoto() != null && userDto.photo() == null) {
-            userPhotoService.deletePhotoById(existingUser.getPhoto());
-            existingUser.setPhoto(null);
+        // Update only specific fields
+        if(userDto.getUsername() != null){
+            UserEntity ue = userRepository.findByUsername(userDto.getUsername()).orElse(null);
+
+            if(userDto.getUsername().toLowerCase().startsWith("admin") && !roles.contains("ADMIN")){
+                throw new UsernameForbiddenException(userDto.getUsername());
+            }
+
+            if(ue == null || Objects.equals(ue.getUsername(), existingUser.getUsername())){
+                existingUser.setUsername(userDto.getUsername());
+            }
+            else{
+                throw new UsernameTakenException(userDto.getUsername());
+            }
+        }
+        if(userDto.getName() != null) existingUser.setName(userDto.getName());
+        if (userDto.getSurname() != null) existingUser.setSurname(userDto.getSurname());
+
+        if(userDto.getMail() != null){
+            UserEntity ue = userRepository.findByMail(userDto.getMail()).orElse(null);
+
+            if(ue == null || Objects.equals(ue.getMail(),existingUser.getMail())) {
+                existingUser.setMail(userDto.getMail());
+            }
+            else{
+                throw new EmailTakenException(userDto.getMail());
+            }
         }
 
-        existingUser.setName(userDto.name());
-        existingUser.setSurname(userDto.surname());
-        existingUser.setMail(userDto.mail());
-        existingUser.setCountry(userDto.country());
-        existingUser.setSalutation(userDto.salutation());
+        if (userDto.getCountry() != null) existingUser.setCountry(userDto.getCountry());
+        if (userDto.getSalutation() != null) existingUser.setSalutation(userDto.getSalutation());
+
         existingUser.setUpdatedAt(LocalDateTime.now());
 
         UserEntity userEntity = userRepository.save(existingUser);
@@ -219,21 +244,29 @@ public class UserService {
     }
 
     private UserDto mapToDto(UserEntity user) {
-        UserPhoto userPhoto = null;
+        PhotoUser userPhoto = null;
         if(user.getPhoto() != null){
             userPhoto = userPhotoService.getPhotoById(user.getPhoto()).orElse(null);
         }
 
-        String picture = null;
+        String content;
         if(userPhoto != null){
-            picture = userPhoto.getContent();
+            try{
+                Resource photo = userPhotoService.asResource(userPhoto);
+                byte[] imageBytes = photo.getContentAsByteArray();
+                content = Base64.getEncoder().encodeToString(imageBytes);
+            }catch(Exception e){
+                throw new FileException("Cannot load user picture",e);
+            }
+        }else{
+            content = null;
         }
         return new UserDto(
                 user.getUsername(),
                 user.getName(),
                 user.getSurname(),
                 user.getMail(),
-                picture,
+                content,
                 user.getSalutation(),
                 user.getCountry()
         );

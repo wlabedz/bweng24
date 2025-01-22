@@ -2,6 +2,7 @@ package com.backend.project.controller;
 
 import com.backend.project.dto.OfficeDto;
 import com.backend.project.dto.OfficeRetDto;
+import com.backend.project.exceptions.FailedUploadingPhoto;
 import com.backend.project.exceptions.OfficeNotFoundException;
 import com.backend.project.model.Office;
 import com.backend.project.service.OfficeService;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
 import java.util.List;
@@ -23,13 +25,17 @@ public class OfficeController {
 
     @Autowired
     public OfficeController(OfficeService bookService) {
-
         this.officeService = bookService;
     }
 
     @PostMapping("/offices")
-    public ResponseEntity<String> addOffice(@RequestBody @Valid OfficeDto officeDto) {
-        String id = officeService.addOffice(officeDto).getId().toString();
+    public ResponseEntity<String> addOffice(@RequestPart("dto") @Valid OfficeDto officeDto, @RequestPart("file") MultipartFile file) {
+       String id;
+       try{
+           id = officeService.addOffice(officeDto, file).getId().toString();
+        }catch(FailedUploadingPhoto ex){
+            return new ResponseEntity<>(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+        }
         return ResponseEntity
                         .created(URI.create("/offices/" + id))
                         .build();
@@ -37,8 +43,13 @@ public class OfficeController {
 
 
     @PutMapping("/offices/{id}")
-    public ResponseEntity<Office> updateOffice(@PathVariable String id, @RequestBody @Valid OfficeDto officeDto){
-        Office office = officeService.updateOffice(officeDto, id);
+    public ResponseEntity<Office> updateOffice(@PathVariable String id, @RequestPart("dto") @Valid OfficeDto officeDto, @RequestPart(value = "file", required = false) MultipartFile file){
+        Office office;
+        try{
+            office = officeService.updateOffice(officeDto, file, id);
+        }catch(FailedUploadingPhoto ex){
+            return new ResponseEntity<>(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+        }
         return ResponseEntity.ok(office);
     }
 
@@ -72,7 +83,7 @@ public class OfficeController {
             officeService.removeOffice(id);
             return new ResponseEntity<>(HttpStatus.OK);
         }catch(OfficeNotFoundException exception){
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 }

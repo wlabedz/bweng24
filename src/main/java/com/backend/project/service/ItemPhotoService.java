@@ -1,55 +1,72 @@
 package com.backend.project.service;
 
-import com.backend.project.exceptions.FailedUploadingPhoto;
-import com.backend.project.exceptions.InvalidToken;
-import com.backend.project.exceptions.PhotoNotFoundException;
-import com.backend.project.exceptions.UserNotFoundException;
-import com.backend.project.model.ItemPhoto;
-import com.backend.project.model.UserEntity;
+import com.backend.project.exceptions.*;
+import com.backend.project.model.PhotoItem;
 import com.backend.project.repository.ItemPhotoRepository;
-import com.backend.project.repository.UserRepository;
-import com.backend.project.security.JWTGenerator;
-import jakarta.servlet.http.HttpServletRequest;
+import com.backend.project.storage.FileStorage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Base64;
-import java.util.Optional;
+import java.io.InputStream;
+import java.util.Objects;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.http.HttpHeaders;
 
 
 @Service
 public class ItemPhotoService {
 
     private final ItemPhotoRepository itemPhotoRepository;
+    private FileStorage fileStorage;
 
     @Autowired
-    public ItemPhotoService(ItemPhotoRepository itemPhotoRepository){
+    public ItemPhotoService(ItemPhotoRepository itemPhotoRepository, FileStorage fileStorage){
         this.itemPhotoRepository = itemPhotoRepository;
+        this.fileStorage = fileStorage;
     }
 
-    public ItemPhoto addPhoto(String content){
-        ItemPhoto newPhoto = new ItemPhoto(content);
-        return itemPhotoRepository.save(newPhoto);
+    public PhotoItem addPhoto(MultipartFile content) throws FailedUploadingPhoto {
+        if(!Objects.equals(content.getContentType(), "image/png") && !Objects.equals(content.getContentType(), "image/jpeg") && !Objects.equals(content.getContentType(), "image/gif")){
+            throw new FailedUploadingPhoto("Unsupported file format");
+        }
+
+        String externalId;
+        try {
+            externalId = fileStorage.upload(content);
+        }catch(FileException e){
+            throw new FailedUploadingPhoto(e.getMessage());
+        }
+
+        PhotoItem photoItem = new PhotoItem(externalId);
+        photoItem.setContentType(content.getContentType());
+        photoItem.setName(content.getOriginalFilename());
+        return itemPhotoRepository.save(photoItem);
     }
 
-    public void deletePhotoById(UUID photoId) {
-        Optional<ItemPhoto> photo = itemPhotoRepository.findById(photoId);
-        if (photo.isPresent()) {
-            itemPhotoRepository.delete(photo.get());
-        } else {
-            throw new PhotoNotFoundException(photoId);
+    public void deletePhotoFromBoth(PhotoItem photo){
+        fileStorage.deleteFile(photo.getExternalId());
+        itemPhotoRepository.deleteById(photo.getId());
+    }
+
+    public void deletePhotoById(UUID id){
+        PhotoItem photo = getPhotoById(id);
+        if(photo != null) {
+            deletePhotoFromBoth(photo);
         }
     }
 
-    public ItemPhoto getPhotoById(UUID photoId) {
+    public Resource asResource(PhotoItem photo) {
+        InputStream stream = fileStorage.download(photo.getExternalId());
+        return new InputStreamResource(stream);
+    }
+
+
+    public PhotoItem getPhotoById(UUID photoId) {
         return itemPhotoRepository.findById(photoId)
-                .orElseThrow(() -> new PhotoNotFoundException(photoId));
+                .orElse(null);
     }
 }
 

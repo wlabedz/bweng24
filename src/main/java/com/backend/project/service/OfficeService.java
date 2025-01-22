@@ -3,16 +3,21 @@ package com.backend.project.service;
 import com.backend.project.dto.DistrictDto;
 import com.backend.project.dto.OfficeDto;
 import com.backend.project.dto.OfficeRetDto;
+import com.backend.project.exceptions.FailedUploadingPhoto;
+import com.backend.project.exceptions.FileException;
 import com.backend.project.exceptions.OfficeNotFoundException;
 import com.backend.project.model.District;
 import com.backend.project.model.Office;
-import com.backend.project.model.OfficePhoto;
+import com.backend.project.model.PhotoOffice;
 import com.backend.project.repository.DistrictRepository;
 import com.backend.project.repository.OfficeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,7 +43,7 @@ public class OfficeService {
         return off.isEmpty() ? Optional.empty() : Optional.of(off);
     }
 
-    public Office addOffice(OfficeDto officeDto){
+    public Office addOffice(OfficeDto officeDto, MultipartFile file) throws FailedUploadingPhoto {
         Optional<District> existingDistrict = districtRepository.findById(officeDto.district().id());
         District district;
         if (existingDistrict.isPresent()) {
@@ -48,10 +53,15 @@ public class OfficeService {
             districtRepository.save(district);
         }
 
-        OfficePhoto officePhoto = officePhotoService.addPhoto(officeDto.photo());
+        PhotoOffice photoOffice;
+        try{
+            photoOffice = officePhotoService.addPhoto(file);
+        }catch(FailedUploadingPhoto ex){
+            throw new FailedUploadingPhoto(ex.getMessage());
+        }
 
         Office office = new Office(district, officeDto.phoneNumber(), officeDto.address(),
-                officePhoto.getId(), officeDto.description());
+                photoOffice.getId(), officeDto.description());
 
         return officeRepository.save(office);
     }
@@ -85,25 +95,30 @@ public class OfficeService {
         officeRepository.deleteById(officeToDelete.getId());
    }
 
-   public Office updateOffice(OfficeDto officeDto, String id) {
+   public Office updateOffice(OfficeDto officeDto, MultipartFile file, String id) throws FailedUploadingPhoto {
        UUID ud;
-       if (officeDto.photo() != null) {
-           ud = officePhotoService.addPhoto(officeDto.photo()).getId();
+       if (file != null) {
+           ud = officePhotoService.addPhoto(file).getId();
        } else {
            ud = null;
        }
+
        District d = districtRepository.findById(officeDto.district().id()).orElse(null);
 
        return officeRepository.findAll()
                .stream().filter(office -> office.getId().toString().equals(id))
                .map(existingOffice -> {
-                   if(existingOffice.getPhotoId() != null){
+                   if(existingOffice.getPhotoId() != null && ud != null){
                        officePhotoService.deletePhotoById(existingOffice.getPhotoId());
                    }
-                   existingOffice.setPhotoId(ud);
+                   if(ud != null){
+                       existingOffice.setPhotoId(ud);
+                   }
                    existingOffice.setDescription(officeDto.description());
                    existingOffice.setAddress(officeDto.address());
-                   existingOffice.setDistrict(d);
+                   if(d != null){
+                       existingOffice.setDistrict(d);
+                   }
                    existingOffice.setPhoneNumber(officeDto.phoneNumber());
                    existingOffice.setLastUpdatedAt(LocalDateTime.now());
                    return officeRepository.save(existingOffice);
@@ -112,14 +127,22 @@ public class OfficeService {
 
 
     private OfficeRetDto mapToDto(Office office) {
-        OfficePhoto off = null;
+        PhotoOffice photoOffice = null;
         if(office.getPhotoId() != null){
-            off = officePhotoService.getPhotoById(office.getPhotoId()).orElse(null);
+            photoOffice = officePhotoService.getPhotoById(office.getPhotoId()).orElse(null);
         }
 
-        String picture = null;
-        if(off != null){
-            picture = off.getContent();
+        String content;
+        if(photoOffice != null){
+            try{
+                Resource photo = officePhotoService.asResource(photoOffice);
+                byte[] imageBytes = photo.getContentAsByteArray();
+                content = Base64.getEncoder().encodeToString(imageBytes);
+            }catch(Exception e){
+                throw new FileException("Cannot load user picture",e);
+            }
+        }else{
+            content = null;
         }
 
         return new OfficeRetDto(
@@ -127,7 +150,7 @@ public class OfficeService {
                 new DistrictDto(office.getDistrict().getId(),office.getDistrict().getName()),
                 office.getPhoneNumber(),
                 office.getAddress(),
-                picture,
+                content,
                 office.getDescription()
         );
     }

@@ -3,7 +3,7 @@ package com.backend.project.controller;
 import com.backend.project.exceptions.FailedUploadingPhoto;
 import com.backend.project.exceptions.InvalidToken;
 import com.backend.project.exceptions.UserNotFoundException;
-import com.backend.project.model.UserPhoto;
+import com.backend.project.model.PhotoUser;
 import com.backend.project.service.UserPhotoService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,24 +25,36 @@ public class UserPhotoController {
 
 
     @PostMapping("/userphotos")
-    public ResponseEntity<UserPhoto> addPhoto(@RequestParam("photo") MultipartFile photo, HttpServletRequest request){
-        UserPhoto userPhoto;
+    public ResponseEntity<PhotoUser> addPhoto(@RequestParam("photo") MultipartFile photo, HttpServletRequest request){
+        PhotoUser photoUser;
         try{
-            userPhoto = userPhotoService.addPhoto(photo,request);
+            photoUser = userPhotoService.addPhoto(photo,request);
         }catch(InvalidToken exception){
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }catch (FailedUploadingPhoto exception) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
         }catch (UserNotFoundException exception){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(userPhoto, HttpStatus.CREATED);
+        return new ResponseEntity<>(photoUser, HttpStatus.CREATED);
     }
 
     @DeleteMapping("/userphotos")
     public ResponseEntity<String> deleteUserPhoto(HttpServletRequest request) {
         try{
             userPhotoService.deletePhoto(request);
+        }catch(InvalidToken exception){
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }catch (UserNotFoundException exception){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/userphotos/{username}")
+    public ResponseEntity<String> deleteUserPhotoAdmin(@PathVariable String username) {
+        try{
+            userPhotoService.deletePhotoAdmin(username);
         }catch(InvalidToken exception){
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }catch (UserNotFoundException exception){

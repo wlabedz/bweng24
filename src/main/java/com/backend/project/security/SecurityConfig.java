@@ -46,9 +46,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/reviews").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/found_items/submit").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/found_items").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/found_items/description").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/found_items/description").authenticated()
                         .requestMatchers(HttpMethod.PUT, "api/offices/*").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET, "api/users").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/{username}").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "api/users").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "api/users").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/faqs").permitAll()
@@ -56,6 +57,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/faqs/{id}/approve").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/faqs/{id}/delete").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/faqs/{id}/update").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/found_items/{id}/picture").authenticated()
+                        .requestMatchers(HttpMethod.GET,"/api/added_found_items").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/found_items/{id}/picture").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "api/userphotos/{username}").hasAuthority("ADMIN")
 
 
                         .anyRequest().permitAll());

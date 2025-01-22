@@ -1,10 +1,12 @@
 package com.backend.project.controller;
 
 import com.backend.project.dto.UserDto;
+import com.backend.project.dto.UserPatchDto;
 import com.backend.project.dto.changeEmailDto;
 import com.backend.project.exceptions.*;
 import com.backend.project.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,15 +51,18 @@ public class UserController {
         userService.removeByUsername(username);
     }
 
-    @PutMapping("/users")
-    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto updatedUserDto, HttpServletRequest request) {
+
+    @PatchMapping("/users/{username}")
+    public ResponseEntity<UserDto> updateUser(@PathVariable String username, @Valid @RequestBody UserPatchDto updatedUserDto, HttpServletRequest request) {
         try {
-            UserDto userEntity = userService.updateUser(updatedUserDto, request);
+            UserDto userEntity = userService.updateUser(username, updatedUserDto, request);
             return ResponseEntity.ok(userEntity);
         }catch(InvalidToken exception){
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }catch(NotAllowedException exception){
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }catch(UsernameTakenException | EmailTakenException | UsernameForbiddenException exception){
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
     }
 

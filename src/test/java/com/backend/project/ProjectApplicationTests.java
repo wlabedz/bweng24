@@ -1,5 +1,6 @@
 package com.backend.project;
 
+import com.backend.project.controller.UserController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -9,5 +10,4 @@ class ProjectApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
 }

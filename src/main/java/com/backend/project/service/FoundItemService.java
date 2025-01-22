@@ -1,6 +1,9 @@
 package com.backend.project.service;
 
+import com.backend.project.dto.DistrictDto;
 import com.backend.project.dto.FoundItemDto;
+import com.backend.project.dto.FoundItemRetDto;
+import com.backend.project.dto.OfficeRetDto;
 import com.backend.project.exceptions.*;
 import com.backend.project.model.*;
 import com.backend.project.repository.FoundItemRepository;
@@ -9,6 +12,7 @@ import com.backend.project.service.ItemPhotoService;
 import com.backend.project.security.JWTGenerator;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +35,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.http.HttpHeaders;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDate;
 
 @Service
@@ -52,7 +58,7 @@ public class FoundItemService {
         this.jwtGenerator = jwtGenerator;
     }
 
-    public FoundItem addItem(FoundItemDto foundItemDto, HttpServletRequest request) throws InvalidToken, UserNotFoundException, FailedUploadingPhoto {
+    public FoundItem addItem(FoundItemDto foundItemDto, HttpServletRequest request, MultipartFile file) throws InvalidToken, UserNotFoundException, FailedUploadingPhoto {
         String token = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (token != null && token.startsWith("Bearer ")) {
@@ -69,14 +75,20 @@ public class FoundItemService {
                 throw new UserNotFoundException("User could not have been found");
             }
 
-            ItemPhoto itemPhoto = itemPhotoService.addPhoto(foundItemDto.photo());
+            PhotoItem photoItem;
+            try{
+                photoItem = itemPhotoService.addPhoto(file);
+            }catch(FailedUploadingPhoto ex){
+                throw new FailedUploadingPhoto(ex.getMessage());
+            }
+
             FoundItem newItem = new FoundItem(
                     user,
                     foundItemDto.name(),
                     foundItemDto.category(),
                     foundItemDto.description(),
                     foundItemDto.office(),
-                    itemPhoto.getId(),
+                    photoItem.getId(),
                     foundItemDto.foundDate(),
                     foundItemDto.foundPlace()
                     );
@@ -87,80 +99,223 @@ public class FoundItemService {
         }
     }
 
-    public FoundItem updateItemDescription(UUID id, String newDescription) {
-        FoundItem existingItem = foundItemRepository.findById(id)
+    public Optional<List<FoundItemRetDto>> getItemsByUser(HttpServletRequest request) throws InvalidToken {
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        }
+
+        if (jwtGenerator.validateToken(token)) {
+            String username = jwtGenerator.getUsernameFromJWT(token);
+            UserEntity user = userRepository.findByUsername(username).orElse(null);
+
+            if (user == null) {
+                throw new UserNotFoundException("User could not have been found");
+            }
+            List<FoundItemRetDto> items = foundItemRepository.findAll().stream().filter(item -> item.getUser().getId().equals(user.getId())).map(this::mapToDto).toList();
+            return items.isEmpty() ? Optional.empty() : Optional.of(items);
+        } else {
+            throw new InvalidToken("Token cannot be validated");
+        }
+    }
+
+
+    public FoundItemRetDto uploadNewPicture(UUID id, MultipartFile photo, HttpServletRequest request) throws FailedUploadingPhoto, InvalidToken, NotAllowedException {
+        FoundItem item = foundItemRepository.findById(id)
                 .orElseThrow(() -> new ItemNotFoundException(id));
 
-        existingItem.setDescription(newDescription);
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        return foundItemRepository.save(existingItem);
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        }
+
+        if (jwtGenerator.validateToken(token)) {
+            String username = jwtGenerator.getUsernameFromJWT(token);
+            UserEntity user = userRepository.findByUsername(username).orElse(null);
+
+            if (user == null) {
+                throw new UserNotFoundException("User could not have been found");
+            }
+
+            List<String> roles = jwtGenerator.getRolesFromJWT(token);
+
+            if (!roles.contains("ADMIN") && !user.getId().equals(item.getUser().getId())) {
+                throw new NotAllowedException(user.getUsername());
+            }
+
+            try{
+                if(item.getPhotoId() != null){
+                    itemPhotoService.deletePhotoById(item.getPhotoId());
+                }
+                PhotoItem addedPhoto = itemPhotoService.addPhoto(photo);
+                item.setUpdatedAt(LocalDateTime.now());
+                item.setPhotoId(addedPhoto.getId());
+                System.out.println(addedPhoto.getId());
+                return mapToDto(foundItemRepository.save(item));
+            }catch(FailedUploadingPhoto e){
+                throw new FailedUploadingPhoto("Failed uploading the picture");
+            }
+        }
+        else {
+            throw new InvalidToken("Token cannot be validated");
+        }
     }
 
-    public FoundItemDto getItemById(UUID itemId) {
-        FoundItem foundItem = foundItemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException(itemId));
 
-        String photoContent = foundItem.getPhotoId() != null
-                ? itemPhotoService.getPhotoById(foundItem.getPhotoId()).getContent()
-                : null;
+    public void deletePhoto(UUID id, HttpServletRequest request) throws InvalidToken, NotAllowedException {
+        FoundItem item = foundItemRepository.findById(id)
+                .orElseThrow(() -> new ItemNotFoundException(id));
 
-        return new FoundItemDto(
-                foundItem.getId(),
-                foundItem.getName(),
-                foundItem.getCategory(),
-                foundItem.getDescription(),
-                foundItem.getOffice(),
-                photoContent,
-                foundItem.getFoundDate(),
-                foundItem.getFoundPlace()
-        );
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        }
+
+        if (jwtGenerator.validateToken(token)) {
+            String username = jwtGenerator.getUsernameFromJWT(token);
+            UserEntity user = userRepository.findByUsername(username).orElse(null);
+
+            if (user == null) {
+                throw new UserNotFoundException("User could not have been found");
+            }
+
+            List<String> roles = jwtGenerator.getRolesFromJWT(token);
+
+            if (!roles.contains("ADMIN") && !user.getId().equals(item.getUser().getId())) {
+                throw new NotAllowedException(user.getUsername());
+            }
+
+            if (item != null) {
+                if (item.getPhotoId() != null) {
+                    itemPhotoService.deletePhotoById(item.getPhotoId());
+                    item.setPhotoId(null);
+                    item.setUpdatedAt(LocalDateTime.now());
+                    foundItemRepository.save(item);
+                }
+            }
+        }
+        else {
+                throw new InvalidToken("Token cannot be validated");
+            }
+        }
+
+
+
+    public FoundItemRetDto updateItem(UUID id, FoundItemDto dto, HttpServletRequest request) throws InvalidToken, NotAllowedException {
+
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            throw new InvalidToken("Token body does not comply with assumed format and therefore cannot be validated");
+        }
+
+        if (jwtGenerator.validateToken(token)) {
+            String username = jwtGenerator.getUsernameFromJWT(token);
+            UserEntity user = userRepository.findByUsername(username).orElse(null);
+
+            if (user == null) {
+                throw new UserNotFoundException("User could not have been found");
+            }
+
+            List<String> roles = jwtGenerator.getRolesFromJWT(token);
+
+            FoundItem existingItem = foundItemRepository.findById(id)
+                    .orElseThrow(() -> new ItemNotFoundException(id));
+
+
+            if (!roles.contains("ADMIN") && !user.getId().equals(existingItem.getUser().getId())) {
+                throw new NotAllowedException(user.getUsername());
+            }
+
+            existingItem.setDescription(dto.description());
+            existingItem.setCategory(dto.category());
+            existingItem.setFoundDate(dto.foundDate());
+            existingItem.setFoundPlace(dto.foundPlace());
+            existingItem.setUpdatedAt(LocalDateTime.now());
+
+            return mapToDto(foundItemRepository.save(existingItem));
+        } else {
+            throw new InvalidToken("Token cannot be validated");
+        }
     }
 
-    public List<FoundItemDto> getAllItems() {
-        List<FoundItem> items = foundItemRepository.findAll();
+    public FoundItemRetDto getItemById(UUID itemId) {
+        return foundItemRepository.findAll()
+                .stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst().map(this::mapToDto).orElse(null);
+    }
 
-        return items.stream()
-                .map(item -> new FoundItemDto(
-                        item.getId(),
-                        item.getName(),
-                        item.getCategory(),
-                        item.getDescription(),
-                        item.getOffice(),
-                        item.getPhotoId() != null
-                                ? itemPhotoService.getPhotoById(item.getPhotoId()).getContent()
-                                : null,
-                        item.getFoundDate(),
-                        item.getFoundPlace()
-                ))
-                .collect(Collectors.toList());
+    public Optional<List<FoundItemRetDto>> getAllItems() {
+        List<FoundItemRetDto> items = foundItemRepository.findAll()
+                .stream()
+                .map(this::mapToDto).toList();
+
+        return items.isEmpty() ? Optional.empty() : Optional.of(items);
     }
 
     public void deleteItem(UUID itemId) throws InvalidToken{
         FoundItem item = foundItemRepository.findById(itemId)
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
+        if(item.getPhotoId() != null){
+            itemPhotoService.deletePhotoById(item.getPhotoId());
+        }
         foundItemRepository.deleteById(item.getId());
     }
 
-    public List<FoundItemDto> searchItems(String category, String name, UUID userId, LocalDate startDate, LocalDate endDate) {
-        List<FoundItem> items = foundItemRepository.findAll().stream()
+    public Optional<List<FoundItemRetDto>> searchItems(String category, String name, UUID userId, LocalDate startDate, LocalDate endDate) {
+        List<FoundItemRetDto> items = foundItemRepository.findAll().stream()
                 .filter(item -> category == null || item.getCategory().equalsIgnoreCase(category))
                 .filter(item -> name == null || item.getName().toLowerCase().contains(name.toLowerCase()))
                 .filter(item -> userId == null || (item.getUser() != null && item.getUser().getId().equals(userId)))
                 .filter(item -> startDate == null || !item.getFoundDate().isBefore(startDate))
                 .filter(item -> endDate == null || !item.getFoundDate().isAfter(endDate))
-                .toList();
+                .map(this::mapToDto).toList();
 
-        return items.stream()
-                .map(item -> new FoundItemDto(
-                        item.getId(),
-                        item.getName(),
-                        item.getCategory(),
-                        item.getDescription(),
-                        item.getOffice(),
-                        itemPhotoService.getPhotoById(item.getPhotoId()).getContent(),
-                        item.getFoundDate(),
-                        item.getFoundPlace()
-                ))
-                .collect(Collectors.toList());
+        return items.isEmpty() ? Optional.empty() : Optional.of(items);
+    }
+
+
+    private FoundItemRetDto mapToDto(FoundItem foundItem) {
+        PhotoItem photoItem = null;
+        if(foundItem.getPhotoId() != null){
+            photoItem = itemPhotoService.getPhotoById(foundItem.getPhotoId());
+        }
+
+        String content;
+        if(photoItem != null){
+            try{
+                Resource photo = itemPhotoService.asResource(photoItem);
+                byte[] imageBytes = photo.getContentAsByteArray();
+                content = Base64.getEncoder().encodeToString(imageBytes);
+            }catch(Exception e){
+                throw new FileException("Cannot load user picture",e);
+            }
+        }else{
+            content = null;
+        }
+
+        return new FoundItemRetDto(
+                foundItem.getId(),
+                foundItem.getUser(),
+                foundItem.getName(),
+                foundItem.getCategory(),
+                foundItem.getDescription(),
+                foundItem.getOffice(),
+                content,
+                foundItem.getFoundDate(),
+                foundItem.getFoundPlace()
+        );
     }
 }
