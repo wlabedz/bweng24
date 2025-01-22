@@ -9,6 +9,7 @@ This repository contains the backend code for a **Lost and Found Service**, buil
 - [Getting Started](#getting-started)
 - [Configuration](#configuration)
 - [JWT and Spring Security](#jwt-and-spring-security)
+- [Tests](#tests)
 
 ---
 
@@ -77,3 +78,18 @@ The Lost and Found Service uses JWT for stateless authentication and Spring Secu
  - SecurityConfig
 
 
+## Tests
+Our project includes unit and integration tests to ensure the reliability and correctness of the application.
+
+### Unit tests
+  - to validate the functionality of individual components, such as services and controllers
+  - are divided into two directories: 
+    - controllerTests - provide tests regarding controllers, consists of 9 separate test files, each concentrated on different controller
+    - serviceTests - provide tests regarding services, consists of 10 separate test files, each concentrated on different service
+
+### Integration tests
+  - to test the interaction between components
+  - are divided into two files:
+    - FaqControllerIntegrationTest
+    - UserControllerIntegrationTest
+      
